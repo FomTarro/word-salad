@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <button id="play" onclick="play()"></button>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const phrase = urlParams.get('phrase');
+        console.log(phrase)
+        const words = phrase.split(" ");
+        const audio = []
+        for(const word of words){
+            console.log(word);
+            audio.push(new Audio(`./words/${word}_00.wav`));
+        }
+        function play(){
+            audio[0].play();
+        }
+        document.getElementById("play").click();
+    </script>
+</html>
