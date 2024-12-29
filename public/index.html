@@ -2,18 +2,39 @@
 <html>
     <button id="play" onclick="play()"></button>
     <script>
+
+
+
+        function speak(phrase) {
+            const words = phrase.split(" ");
+            const audio = []
+            const ready = [];
+            for(const word of words){
+                console.log(word);
+                const clip = new Audio(`./words/${word}_00.wav`);
+                clip.oncanplaythrough = () => {
+                    ready.push(true);
+                    if(ready.length == audio.length){
+                        audio[0].play();
+                    }
+                }
+                audio.push(clip);
+            }
+
+
+            for(let i = 0; i < audio.length; i++){
+                audio[i].onended = () => {
+                    console.log("end");
+                    if(i+1 < audio.length){
+                        audio[i+1].play();
+                    }
+                }
+            }
+        }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const phrase = urlParams.get('phrase');
         console.log(phrase)
-        const words = phrase.split(" ");
-        const audio = []
-        for(const word of words){
-            console.log(word);
-            audio.push(new Audio(`./words/${word}_00.wav`));
-        }
-        function play(){
-            audio[0].play();
-        }
-        document.getElementById("play").click();
-    </script>
+        speak(phrase)
+;    </script>
 </html>
