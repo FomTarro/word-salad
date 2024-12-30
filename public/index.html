@@ -27,7 +27,7 @@
                 }
             }
         }
-
+        var pulse;
         var protocolPrefix = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
         function createSocket() {
             const socket = new WebSocket(protocolPrefix + '//' + location.host);
@@ -49,7 +49,6 @@
                     socket.send(JSON.stringify(obj));
                 }
             }
-            var pulse;
             if(pulse){
                 clearInterval(pulse);
             }
