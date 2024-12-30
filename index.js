@@ -52,7 +52,7 @@ function formSentence(phrase, dictionary){
 
 async function launch(){
     const dict = await parseDictionary();
-    const port = process.env.PORT || 8080;
+    const port = process.env.PORT || 8095;
     app.use('/', express.static(baseDirectory));
     app.set('trust proxy', true);
 
