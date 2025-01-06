@@ -7,9 +7,30 @@ const app = express();
 require('dotenv').config();
 
 const baseDirectory = path.join(__dirname, './public');
-async function parseDictionary(){
+const wordsDirectory = path.join(baseDirectory, "words");
+let wordsDictionary = new Map();
+
+async function getFiles(dir, collection) {
+    console.log(dir);
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+        const qualifiedPath = path.join(dir, file);
+        if (fs.existsSync(qualifiedPath)) {
+            if (fs.statSync(qualifiedPath).isDirectory()) {
+                getFiles(qualifiedPath, collection);
+            } else {
+                collection.push(qualifiedPath.replace(wordsDirectory, ""));
+            }
+        } else {
+            console.warn(`No such file: ${qualifiedPath}`);
+        }
+    }
+}
+
+async function parseDictionary() {
+    const words = []
+    getFiles(wordsDirectory, words);
     const extensions = ['.wav', '.mp3', '.mp4']
-    const words = fs.readdirSync(path.join(baseDirectory, "words"));
     const filteredWords = words.map(word => word.toLowerCase())
         .filter(word => extensions.includes(path.extname(word)));
     filteredWords.sort();
@@ -23,9 +44,17 @@ async function parseDictionary(){
             dict.set(split[0], [word]);
         }
     }
-    console.log(dict);
+    // console.log(dict);
     return dict;
 }
+
+fs.watch(wordsDirectory, async e => {
+    try{
+        wordsDictionary = await parseDictionary();
+    }catch(e){
+
+    }
+});
 
 /**
  * 
@@ -50,8 +79,8 @@ function formSentence(phrase, dictionary){
     return files;
 }
 
-async function launch(){
-    const dict = await parseDictionary();
+async function launch() {
+    wordsDictionary = await parseDictionary();
     const port = process.env.PORT || 8095;
     app.use('/', express.static(baseDirectory));
     app.set('trust proxy', true);
@@ -82,7 +111,7 @@ async function launch(){
     app.get(['/speak',], async (req, res) => {
         if(req.query.phrase && req.query){
             console.log(req.query.phrase);
-            const files = formSentence(req.query.phrase, dict);
+            const files = formSentence(req.query.phrase, wordsDictionary);
             server.clients.forEach(client => {
                 client.send(
                     JSON.stringify({
@@ -98,7 +127,8 @@ async function launch(){
     });
 
     app.get(['/words',], async (req, res) => {
-        res.status(200).send([...dict.keys()]);
+        console.log(wordsDictionary);
+        res.status(200).send([...wordsDictionary.keys()]);
         return;
     });
 }
