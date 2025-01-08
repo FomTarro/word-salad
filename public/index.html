@@ -1,26 +1,44 @@
 <!DOCTYPE html>
 <html>
     <script>
-        function speak(files) {
-            const audio = []
+        function speak(commands) {
+            const chunks = []
             const ready = [];
-            for(const file of files){
-                console.log(file);
-                const clip = new Audio(`./words/${file}`);
-                clip.oncanplaythrough = () => {
-                    ready.push(true);
-                    if(ready.length == audio.length){
-                        audio[0].play();
+            for(const command of commands){
+                console.log(command);
+                if(command.path){
+                    const clip = new Audio(`./words/${command.path}`);
+                    clip.oncanplaythrough = () => {
+                        ready.push(true);
+                        if(ready.length == chunks.length){
+                            chunks[0].play();
+                        }
                     }
+                    chunks.push({
+                        onended: undefined,
+                        play(){
+                            clip.onended = this.onended;
+                            clip.play();
+                        }   
+                    });
+                }else{
+                    ready.push(true);
+                    chunks.push({
+                        onended: undefined,
+                        play(){
+                            setTimeout(() => {
+                                this.onended();
+                            }, command.delay)
+                        }
+                    });
                 }
-                audio.push(clip);
             }
 
+            for(let i = 0; i < chunks.length; i++){
 
-            for(let i = 0; i < audio.length; i++){
-                audio[i].onended = () => {;
-                    if(i+1 < audio.length){
-                        audio[i+1].play();
+                chunks[i].onended = () => {;
+                    if(i+1 < chunks.length){
+                        chunks[i+1].play();
                     }else{
                         console.log("END");
                     }
