@@ -5,7 +5,7 @@
             const chunks = []
             const ready = [];
             for(const command of commands){
-                console.log(command);
+                // if it's a file
                 if(command.path){
                     const clip = new Audio(`./words/${command.path}`);
                     clip.oncanplaythrough = () => {
@@ -15,27 +15,29 @@
                         }
                     }
                     chunks.push({
-                        onended: undefined,
+                        onended(){ 
+                            console.warn("OnEnded Callback not initialized.")
+                        },
                         play(){
                             clip.onended = this.onended;
                             clip.play();
                         }   
                     });
+                // else, it's punctuation
                 }else{
                     ready.push(true);
                     chunks.push({
-                        onended: undefined,
+                        onended(){ 
+                            console.warn("OnEnded Callback not initialized.")
+                        },
                         play(){
-                            setTimeout(() => {
-                                this.onended();
-                            }, command.delay)
+                            setTimeout(this.onended, command.delay)
                         }
                     });
                 }
             }
 
             for(let i = 0; i < chunks.length; i++){
-
                 chunks[i].onended = () => {;
                     if(i+1 < chunks.length){
                         chunks[i+1].play();
@@ -46,23 +48,23 @@
             }
         }
         var pulse;
-        var protocolPrefix = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+        const protocolPrefix = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
         function createSocket() {
             const socket = new WebSocket(protocolPrefix + '//' + location.host);
             socket.onopen = function(){
                 console.log("open!");
             }
-            socket.onmessage = function(message){
+            socket.onmessage = (message) => {
                 console.log(message.data)
                 const data = JSON.parse(message.data);
                 if(data.files){
                     speak(data.files);
                 }
             }
-            socket.onclose = function(){
+            socket.onclose = () => {
                 createSocket();
             }
-            function send(obj){
+            const send = (obj) => {
                 if(socket &&  socket.readyState === socket.OPEN){
                     socket.send(JSON.stringify(obj));
                 }
@@ -71,13 +73,11 @@
                 clearInterval(pulse);
             }
             pulse = setInterval(
-                function(){
+                () => {
                     try{
-                        send(
-                            {pulse: 1}
-                        );
+                        send({ pulse: 1 });
                     }catch(e){
-
+                        console.warn(e);
                     }
                 }, 
             10000);

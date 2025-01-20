@@ -3,10 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const WebSocket = require('ws');
-const { app, BrowserWindow } = require('electron');
-const expressServer = express();
+const { app, BrowserWindow, ipcMain } = require('electron')
 require('dotenv').config();
 
+const srcDirectory = path.join(__dirname, './src');
 const baseDirectory = path.join(__dirname, './public');
 const wordsDirectory = path.join(baseDirectory, "words");
 let wordsDictionary = new Map();
@@ -95,9 +95,10 @@ function formSentence(phrase, dictionary){
 async function launch() {
     wordsDictionary = await parseDictionary();
     const port = process.env.PORT || 8095;
+    const expressServer = express();
+    expressServer.use(express.json());
     expressServer.use('/', express.static(baseDirectory));
     expressServer.set('trust proxy', true);
-    expressServer.use(express.json());
 
     // Makes an http server out of the express server
     const httpServer = http.createServer(expressServer);
@@ -108,40 +109,53 @@ async function launch() {
         console.log(`started on ${port}`);
     });
 
+    // Websocket API
     const wsServer = new WebSocket.Server({server: httpServer, path:'/'});
-    expressServer.on('connection', (ws) => {
+    wsServer.on('connection', (ws) => {
         console.log('connection!');
     });
 
-    expressServer.on('close', (ws) => {
+    wsServer.on('close', (ws) => {
         console.log('connection closed!');
     });
 
-    expressServer.post(['/delay'], async (req, res) => {
-        console.log(req.body);
-        res.sendStatus(200);
-    })
+    const sendToWsClients = (data) => {
+        wsServer.clients.forEach(client => {
+            client.send(
+                JSON.stringify(data)
+            );
+        });
+    }
+
+    // Express Webserver API
+
+    expressServer.get(['/',], async (req, res) => {
+        res.status(200).sendFile(path.join(baseDirectory, 'ui.html'));
+        return;
+    });
 
     expressServer.get(['/source', '/player',], async (req, res) => {
-        res.status(200).sendFile(path.join(baseDirectory, 'index.html'));
+        res.status(200).sendFile(path.join(baseDirectory, 'player.html'));
         return;
     });
 
     expressServer.get(['/speak',], async (req, res) => {
         if(req.query.phrase && req.query){
-            console.log(req.query.phrase);
+            console.log(`Attempting to say: ${req.query.phrase}`);
             const files = formSentence(req.query.phrase, wordsDictionary);
-            wsServer.clients.forEach(client => {
-                client.send(
-                    JSON.stringify({
-                        files
-                    })
-                );
-            });
+            sendToWsClients({ files: files });
             res.status(200).send();
             return;
         }
         res.status(400).send();
+        return;
+    });
+
+    expressServer.post(['/save',], async (req, res) => {
+        if(req.body){
+            
+        }
+        res.status(200).send();
         return;
     });
 
@@ -151,23 +165,26 @@ async function launch() {
         return;
     });
 
-    const createWindow = () => {
-        const win = new BrowserWindow({
-          width: 800,
-          height: 600
-        })
-      
-        win.loadFile('home.html');
-    }
-
+    // Electron API
     app.whenReady().then(() => {
-        createWindow()
+        // ipcMain.on('save-settings', (event, setting) => {
+        //     console.log(setting);
+        // });
+        const win = new BrowserWindow({
+            width: 800,
+            height: 600,
+            // webPreferences: {
+            //   preload: path.join(srcDirectory, 'js', 'bridge.js')
+            // }
+          })
+        win.loadURL(`http://localhost:${port}/`)
+        // win.webContents.send('load-settings', {
+        //     port: port
+        // });
     });
 
     app.on('window-all-closed', () => {
-        if (process.platform !== 'darwin') {
-            app.quit();   
-        }
+        app.quit();   
     });
 }
 

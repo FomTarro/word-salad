@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <link rel="stylesheet" type="text/css" href='/css/style.css'>
+    <body>
+        <h2>Word Salad v0.1</h2>
+        <div>
+            <div>
+                <label class="bold" for="source">Browser Source URL</label>
+            </div>
+            <input id="source" name="source" type="text" readonly>
+        </div>
+        <div>
+            <div>
+                <label class="bold" for="speak">Say A Phrase...</label>
+            </div>
+            <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+        </div>
+        <hr>
+        <div>
+            <div>
+                <label class="bold" for="delay">Punctuation Pause Duration</label>
+            </div>
+            <input class="generalSetting" name="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+        </div>
+    </body>
+    <script>
+        document.getElementById('source').value = `http://${window.location.host}/player`
+        document.getElementById('speakButton').addEventListener('click', async () => {
+            console.log(`Saying: ${document.getElementById('speak').value}`);
+            const response = await fetch(`/speak?phrase=${document.getElementById('speak').value}`, {
+                method: "GET",
+            });
+        })
+        for(const setting of document.getElementsByClassName('generalSetting')){
+            setting.addEventListener("change", async () => {
+                const data = {
+                    [setting.name] : setting.value
+                };
+                console.log(data);
+                const response = await fetch("/save", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data)
+                });
+                // window.electronAPI.saveSetting(
+                //     {
+                //         [setting.name] : setting.value
+                //     }
+                // );
+            });
+        }
+    </script>
+</html>
