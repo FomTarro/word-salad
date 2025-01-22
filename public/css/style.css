@@ -1,7 +1,35 @@
+html {
+    height: 100%;
+}
+body {
+    overflow: hidden;
+    height: 100vh;
+}
+
+hr {
+    width: 100%;
+}
+
+.flex {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .bold {
     font-weight: bold;
 }
 
 .italic {
     font-style: italic;
+}
+
+.hidden {
+    display: none !important;
+    height: 0px !important;
+}
+
+.contentTab {
+    height: auto;
+    overflow-y: scroll;
 }

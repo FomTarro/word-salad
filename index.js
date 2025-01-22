@@ -3,13 +3,47 @@ const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron');
 require('dotenv').config();
 
 const srcDirectory = path.join(__dirname, './src');
 const publicDirectory = path.join(__dirname, './public');
 const wordsDirectory = path.join(publicDirectory, "words");
 let wordsDictionary = new Map();
+
+let settings = {
+    delay: 500,
+}
+
+/** * For each property of object A, if object B has a value for that property, apply it to Object A.
+ * Returns a new instance/clone of A with the new values.
+ * @param {object} a 
+ * @param {object} b 
+ * @returns {object} - A new instance of A with all properties merged in.
+ */
+function merge(a, b){
+    var c = {}
+    for(var prop in a){
+        if(b && b[prop]){
+            c[prop] = b[prop]
+        }else{
+            c[prop] = a[prop]
+        }
+    }
+    return c;
+}
+
+function save(data) {
+    settings = merge(settings, data)
+    fs.writeFileSync('./settings.json', JSON.stringify(settings));
+}
+
+function load() {
+    if (fs.existsSync('./settings.json')) {
+        const data = JSON.parse(fs.readFileSync('./settings.json').toString());
+        settings = merge(settings, data)
+    }
+}
 
 async function getFiles(dir, collection) {
     console.log(dir);
@@ -85,7 +119,7 @@ function formSentence(phrase, dictionary){
             // punctuation, push a pause!
             // TODO: make this dynamic based on settings
             commands.push({
-                delay: 500,
+                delay: settings.delay,
             })
         }
     }
@@ -93,6 +127,7 @@ function formSentence(phrase, dictionary){
 }
 
 async function launchBackend() {
+    load();
     wordsDictionary = await parseDictionary();
     const port = process.env.PORT || 8095;
     const expressServer = express();
@@ -153,11 +188,17 @@ async function launchBackend() {
 
     expressServer.post(['/save',], async (req, res) => {
         if(req.body){
-            // TODO: handle saving
+            save(req.body);
         }
         res.status(200).send();
         return;
     });
+
+    expressServer.get(['/load',], async (req, res) => {
+        res.status(200).send(settings);
+        return;
+    });
+
 
     expressServer.get(['/words',], async (req, res) => {
         console.log(wordsDictionary);

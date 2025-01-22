@@ -1,29 +1,43 @@
 <!DOCTYPE html>
 <html>
     <link rel="stylesheet" type="text/css" href='/css/style.css'>
-    <body>
+    <body class="flex">
         <h2>Word Salad v0.1</h2>
-        <div>
-            <div>
-                <label class="bold" for="source">Browser Source URL</label>
-            </div>
-            <input id="source" name="source" type="text" readonly>
-        </div>
-        <div>
-            <div>
-                <label class="bold" for="speak">Say A Phrase...</label>
-            </div>
-            <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
-        </div>
+        <nav>
+            <button class="tabButton" target="mainTab">General</button>
+            <button class="tabButton" target="wordListTab">Word List</button>
+        </nav>
         <hr>
-        <div>
+        <div class="flex">
             <div>
-                <label class="bold" for="delay">Punctuation Pause Duration</label>
+                <div>
+                    <label class="bold" for="source">Browser Source URL</label>
+                </div>
+                <input id="source" name="source" type="text" readonly>
             </div>
-            <input class="generalSetting" name="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+            <div>
+                <div>
+                    <label class="bold" for="speak">Say A Phrase...</label>
+                </div>
+                <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+            </div>
+            <hr>
+            <div class="contentTab" id="mainTab">
+                <div>
+                    <label class="bold" for="delay">Punctuation Pause Duration</label>
+                </div>
+                <input class="generalSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+            </div>
+            <!--  -->
+            <div class="contentTab" id="wordListTab">
+                <ul id="wordList">
+                    <!-- Words go here -->
+                </ul>
+            </div>
         </div>
     </body>
     <script>
+
         document.getElementById('source').value = `http://${window.location.host}/player`
         document.getElementById('speakButton').addEventListener('click', async () => {
             console.log(`Saying: ${document.getElementById('speak').value}`);
@@ -31,12 +45,45 @@
                 method: "GET",
             });
         })
+
+        async function getWords() {
+            const settings = await fetch(`/words`, {
+                method: "GET",
+            });
+            const body = await settings.json();
+            console.log(body);
+            const list = document.getElementById("wordList");
+            list.innerHTML = "";
+            for(const word of body){
+                const li = document.createElement("li");
+                li.innerHTML = word;
+                list.append(li);
+                li.addEventListener('click', () => {
+                    document.getElementById('speak').value += ` ${word}`;
+                })
+            }
+        }
+        getWords();
+
+        async function load(){
+            const settings = await fetch(`/load`, {
+                method: "GET",
+            });
+            const body = await settings.json()
+            for(const property in body){
+                console.log(`${property} : ${body[property]}`);
+                const elem = document.getElementById(property);
+                if(elem){
+                    elem.value = body[property];
+                }
+            }
+        }
+        load();
         for(const setting of document.getElementsByClassName('generalSetting')){
             setting.addEventListener("change", async () => {
                 const data = {
-                    [setting.name] : setting.value
+                    [setting.id] : setting.value
                 };
-                console.log(data);
                 const response = await fetch("/save", {
                     method: "POST",
                     headers: {
@@ -44,12 +91,26 @@
                     },
                     body: JSON.stringify(data)
                 });
-                // window.electronAPI.saveSetting(
-                //     {
-                //         [setting.name] : setting.value
-                //     }
-                // );
+                load();
             });
         }
+
+        function openTab(tabName){
+            const tabs = document.getElementsByClassName('contentTab');
+            for(const tab of tabs){
+                if(tab.id !== tabName){
+                    tab.classList.add('hidden')
+                }else{
+                    tab.classList.remove('hidden');
+                }
+            }
+        }
+        
+        for(const button of document.getElementsByClassName('tabButton')){
+            button.addEventListener("click", async () => {
+                openTab(button.getAttribute('target'));
+            });
+        }
+        openTab('mainTab');
     </script>
 </html>
