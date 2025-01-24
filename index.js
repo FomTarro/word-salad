@@ -13,6 +13,7 @@ let wordsDictionary = new Map();
 
 let settings = {
     delay: 500,
+    port: 8095
 }
 
 /** * For each property of object A, if object B has a value for that property, apply it to Object A.
@@ -33,14 +34,16 @@ function merge(a, b){
     return c;
 }
 
+const settingsFileName = `settings.json`;
+
 function save(data) {
     settings = merge(settings, data)
-    fs.writeFileSync('./settings.json', JSON.stringify(settings));
+    fs.writeFileSync(settingsFileName, JSON.stringify(settings));
 }
 
 function load() {
-    if (fs.existsSync('./settings.json')) {
-        const data = JSON.parse(fs.readFileSync('./settings.json').toString());
+    if (fs.existsSync(settingsFileName)) {
+        const data = JSON.parse(fs.readFileSync(settingsFileName).toString());
         settings = merge(settings, data)
     }
 }
@@ -129,7 +132,6 @@ function formSentence(phrase, dictionary){
 async function launchBackend() {
     load();
     wordsDictionary = await parseDictionary();
-    const port = process.env.PORT || 8095;
     const expressServer = express();
     expressServer.use(express.json());
     expressServer.use('/', express.static(publicDirectory));
@@ -137,11 +139,10 @@ async function launchBackend() {
 
     // Makes an http server out of the express server
     const httpServer = http.createServer(expressServer);
-
     // Starts the http server
-    httpServer.listen(port, () => {
+    const server = httpServer.listen(settings.port, () => {
         // code to execute when the server successfully starts
-        console.log(`started on ${port}`);
+        console.log(`started on ${settings.port}`);
     });
 
     // Websocket API
@@ -169,8 +170,8 @@ async function launchBackend() {
         return;
     });
 
-    expressServer.get(['/source', '/player',], async (req, res) => {
-        res.status(200).sendFile(path.join(publicDirectory, 'player.html'));
+    expressServer.get(['/source', '/player', '/speaker'], async (req, res) => {
+        res.status(200).sendFile(path.join(publicDirectory, 'speaker.html'));
         return;
     });
 
@@ -189,9 +190,21 @@ async function launchBackend() {
     expressServer.post(['/save',], async (req, res) => {
         if(req.body){
             save(req.body);
+            if(req.body.port){
+                res.status(200).send();
+                console.log("closing http server...");
+                server.closeAllConnections();
+                server.close(async () => {
+                    console.log("closing websocket server...");
+                    wsServer.close(async () => {
+                        await launchBackend();
+                    });
+                });
+            }
+        }else{
+            res.status(400).send();
+            return;
         }
-        res.status(200).send();
-        return;
     });
 
     expressServer.get(['/load',], async (req, res) => {
@@ -201,11 +214,17 @@ async function launchBackend() {
 
 
     expressServer.get(['/words',], async (req, res) => {
-        console.log(wordsDictionary);
+        await parseDictionary();
+        console.log(`Dictionary contains ${wordsDictionary.size} words!`);
         res.status(200).send([...wordsDictionary.keys()]);
         return;
     });
 
+    return server;
+}
+
+async function launchFrontend(){
+    await launchBackend();
     // Electron API
     app.whenReady().then(() => {
         // ipcMain.on('save-settings', (event, setting) => {
@@ -217,8 +236,8 @@ async function launchBackend() {
             // webPreferences: {
             //   preload: path.join(srcDirectory, 'js', 'bridge.js')
             // }
-          })
-        win.loadURL(`http://localhost:${port}/`)
+            })
+        win.loadURL(`http://localhost:${settings.port}/`)
         // win.webContents.send('load-settings', {
         //     port: port
         // });
@@ -229,9 +248,4 @@ async function launchBackend() {
     });
 }
 
-async function launchFrontend() {
-    
-}
-
-launchBackend();
 launchFrontend();

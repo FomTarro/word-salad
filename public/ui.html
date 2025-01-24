@@ -16,20 +16,33 @@
                 <input id="source" name="source" type="text" readonly>
             </div>
             <div>
-                <div>
-                    <label class="bold" for="speak">Say A Phrase...</label>
-                </div>
-                <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+                <form onSubmit="return false;">
+                    <div>
+                        <label class="bold" for="speak">Say A Phrase...</label>
+                    </div>
+                    <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+                </form>
             </div>
             <hr>
-            <div class="contentTab" id="mainTab">
+            <div class="contentTab flex" id="mainTab">
                 <div>
-                    <label class="bold" for="delay">Punctuation Pause Duration</label>
+                    <div>
+                        <label class="bold" for="port">Port</label>
+                    </div>
+                    <input class="generalSetting" id="port" type="number" min="3000" max="9999" value="8095">
                 </div>
-                <input class="generalSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+                <div>
+                    <div>
+                        <label class="bold" for="delay">Punctuation Pause Duration</label>
+                    </div>
+                    <input class="generalSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+                </div>
             </div>
             <!--  -->
-            <div class="contentTab" id="wordListTab">
+            <div class="contentTab flex" id="wordListTab">
+                <div>
+                    <button id="wordRefresh">Refresh List</button>
+                </div>
                 <ul id="wordList">
                     <!-- Words go here -->
                 </ul>
@@ -38,20 +51,20 @@
     </body>
     <script>
 
-        document.getElementById('source').value = `http://${window.location.host}/player`
+        document.getElementById('source').value = `http://${window.location.host}/speaker`;
+        const speakInput = document.getElementById('speak');
         document.getElementById('speakButton').addEventListener('click', async () => {
-            console.log(`Saying: ${document.getElementById('speak').value}`);
-            const response = await fetch(`/speak?phrase=${document.getElementById('speak').value}`, {
+            console.log(`Saying: ${speakInput.value}`);
+            const response = await fetch(`/speak?phrase=${speakInput.value}`, {
                 method: "GET",
             });
-        })
+        });
 
-        async function getWords() {
+        async function getWordList() {
             const settings = await fetch(`/words`, {
                 method: "GET",
             });
             const body = await settings.json();
-            console.log(body);
             const list = document.getElementById("wordList");
             list.innerHTML = "";
             for(const word of body){
@@ -59,11 +72,14 @@
                 li.innerHTML = word;
                 list.append(li);
                 li.addEventListener('click', () => {
-                    document.getElementById('speak').value += ` ${word}`;
+                    speakInput.value = `${speakInput.value} ${word}`.trim();
                 })
             }
         }
-        getWords();
+        document.getElementById("wordRefresh").addEventListener('click', async () => {
+            getWordList();
+        })
+        getWordList();
 
         async function load(){
             const settings = await fetch(`/load`, {
@@ -91,6 +107,9 @@
                     },
                     body: JSON.stringify(data)
                 });
+                if(setting.id === "port"){
+                    window.location.href = `http://localhost:${setting.value}/`
+                }
                 load();
             });
         }

@@ -4,6 +4,9 @@ html {
 body {
     overflow: hidden;
     height: 100vh;
+    margin: 0;
+    padding: 0.5em;
+    box-sizing: border-box;
 }
 
 hr {
@@ -14,6 +17,7 @@ hr {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    gap: 0.5em;
 }
 
 .bold {
