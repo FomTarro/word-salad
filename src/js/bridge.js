@@ -1,8 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    saveSetting: (setting) => { 
-        ipcRenderer.send('save-settings', setting); 
+    selectDirectory: async(context) => {
+        return ipcRenderer.sendSync("selectDirectory");
     }
 });
 

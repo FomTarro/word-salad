@@ -3,22 +3,30 @@ const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, dialog, BrowserWindow, ipcMain } = require('electron');
 require('dotenv').config();
 
 const srcDirectory = path.join(__dirname, './src');
 const publicDirectory = path.join(__dirname, './public');
-const wordsDirectory = path.join(publicDirectory, "words");
-let wordsDictionary = new Map();
+const siblingDirectory = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
 
-const siblingPath = process.env.PORTABLE_EXECUTABLE_DIR;
+/** @type {Map<string, WordBank>} */
+const bankMap = new Map();
 
-const settingsFileName = path.join(siblingPath ?? __dirname,`settings.json`);
+/**
+ * @typedef {Object} WordBank
+ * @property {string} name
+ * @property {string} path
+ * @property {Map<string, string[]} words
+ */
+
+const settingsFilePath = path.join(siblingDirectory ,`settings.json`);
 let settings = {
     tempPath: srcDirectory,
-    settingsPath: settingsFileName,
+    settingsPath: settingsFilePath,
     delay: 500,
-    port: 8095
+    port: 8095,
+    banks: [],
 }
 
 /** * For each property of object A, if object B has a value for that property, apply it to Object A.
@@ -40,27 +48,64 @@ function merge(a, b){
 }
 
 function save(data) {
+    console.log("Saving...");
     settings = merge(settings, data)
-    fs.writeFileSync(settingsFileName, JSON.stringify(settings));
+    settings.banks = [...[...bankMap.values()].map(val =>  { 
+        return {
+            name: val.name,
+            path: val.path,
+        }
+    })];
+    console.log([...bankMap.values()]);
+    console.log(settings);
+    fs.writeFileSync(settingsFilePath, JSON.stringify(settings));
 }
 
-function load() {
-    if (fs.existsSync(settingsFileName)) {
-        const data = JSON.parse(fs.readFileSync(settingsFileName).toString());
-        settings = merge(settings, data)
+async function load() {
+    console.log("Loading...");
+    if (fs.existsSync(settingsFilePath)) {
+        const data = JSON.parse(fs.readFileSync(settingsFilePath).toString());
+        settings = merge(settings, data);
+        const banks = [...settings.banks]
+        for(const bank of banks){
+            createWordBank(bank.name, bank.path);
+        }
     }
 }
 
-async function getFiles(dir, collection) {
-    console.log(dir);
-    const files = fs.readdirSync(dir);
+/**
+ * Creates a new Word Bank and loads it into memory.
+ * @param {string} name - The name of the bank.
+ * @param {string} dir - The root directroy of the bank.
+ */
+function createWordBank(name, dir){
+    console.log(`Creating word bank '${name}' from path: ${dir}`)
+    const dict = parseDictionary(dir);
+    console.log(`Bank has ${dict.size} words.`);
+    bankMap.set(name, {
+        name: name,
+        path: dir,
+        words: dict
+    });
+}
+
+/**
+ * Recursively traverses a folder heirarchy.
+ * @param {string} rootDir - The directory the search started in.
+ * @param {string} currentDir - The directory of the current search.
+ * @param {string[]} collection - Rolling list of file paths, relative to the root.
+ */
+function getFiles(rootDir, currentDir, collection) {
+    const files = fs.readdirSync(currentDir);
     for (const file of files) {
-        const qualifiedPath = path.join(dir, file);
+        const qualifiedPath = path.join(currentDir, file);
         if (fs.existsSync(qualifiedPath)) {
             if (fs.statSync(qualifiedPath).isDirectory()) {
-                getFiles(qualifiedPath, collection);
+                getFiles(rootDir, qualifiedPath, collection);
             } else {
-                collection.push(qualifiedPath.replace(wordsDirectory, ""));
+                const relativePath = qualifiedPath.replace(rootDir, "");
+                console.log(relativePath)
+                collection.push(relativePath);
             }
         } else {
             console.warn(`No such file: ${qualifiedPath}`);
@@ -68,9 +113,14 @@ async function getFiles(dir, collection) {
     }
 }
 
-async function parseDictionary() {
+/**
+ * Parses a root directory for all valid word audio files.
+ * @param {string} dir - The root directory to parse for words.
+ * @returns {Map<string, string[]} - A map of word variants, indexed by word.
+ */
+function parseDictionary(dir) {
     const words = []
-    getFiles(wordsDirectory, words);
+    getFiles(dir, dir, words);
     const extensions = ['.wav', '.mp3', '.mp4']
     const filteredWords = words.map(word => word.toLowerCase())
         .filter(word => extensions.includes(path.extname(word)));
@@ -85,6 +135,7 @@ async function parseDictionary() {
             dict.set(split[0], [word]);
         }
     }
+    console.log(dict);
     return dict;
 }
 
@@ -122,8 +173,6 @@ function formSentence(phrase, dictionary){
                 })
             }
         }else{
-            // punctuation, push a pause!
-            // TODO: make this dynamic based on settings
             commands.push({
                 delay: settings.delay,
             })
@@ -133,8 +182,7 @@ function formSentence(phrase, dictionary){
 }
 
 async function launchBackend() {
-    load();
-    wordsDictionary = await parseDictionary();
+    await load();
     const expressServer = express();
     expressServer.use(express.json());
     expressServer.use('/', express.static(publicDirectory));
@@ -167,7 +215,6 @@ async function launchBackend() {
     }
 
     // Express Webserver API
-
     expressServer.get(['/',], async (req, res) => {
         res.status(200).sendFile(path.join(publicDirectory, 'ui.html'));
         return;
@@ -178,19 +225,7 @@ async function launchBackend() {
         return;
     });
 
-    expressServer.get(['/speak',], async (req, res) => {
-        if(req.query.phrase && req.query){
-            console.log(`Attempting to say: ${req.query.phrase}`);
-            const files = formSentence(req.query.phrase, wordsDictionary);
-            sendToWsClients({ files: files });
-            res.status(200).send();
-            return;
-        }
-        res.status(400).send();
-        return;
-    });
-
-    expressServer.post(['/save',], async (req, res) => {
+    expressServer.post(['/save/general',], async (req, res) => {
         if(req.body){
             save(req.body);
             if(req.body.port){
@@ -215,11 +250,52 @@ async function launchBackend() {
         return;
     });
 
+    // get list of all words
+    expressServer.get(['/banks/:bankName/words',], async (req, res) => {
+        if(req.params && req.params.bankName){
+            const bank = bankMap.get(req.params.bankName)
+            if(bank){
+                console.log(`Bank contains ${bank.words.size} words!`);
+                res.status(200).send([...bank.words.keys()]);
+                return;
+            }
+        }
+        res.status(400).send([]);
+        return;
 
-    expressServer.get(['/words',], async (req, res) => {
-        await parseDictionary();
-        console.log(`Dictionary contains ${wordsDictionary.size} words!`);
-        res.status(200).send([...wordsDictionary.keys()]);
+    });
+
+    // get specific word file
+    expressServer.get(['/banks/:bankName',], async (req, res) => {
+        if(req.params && req.params.bankName && req.query.wordPath){
+            const bank = bankMap.get(req.params.bankName);
+            if(bank){
+                console.log(bank);
+                const filePath = path.join(bank.path, req.query.wordPath);
+                console.log(`Looking for: ${filePath}`);
+                res.status(200).sendFile(filePath);
+                return;
+            }
+        }
+        res.status(404);
+        return;
+    });
+
+    expressServer.get(['/speak',], async (req, res) => {
+        if(req.query && req.query.phrase && req.query.bank){
+            console.log(`Attempting to say: ${req.query.phrase}`);
+            const bank = bankMap.get(req.query.bank);
+            if(bank){
+                const commands = formSentence(req.query.phrase, bank.words);
+                sendToWsClients({ 
+                    bank: bank.name,
+                    commands: commands 
+                });
+                res.status(200).send();
+                return;
+            }
+        }
+        res.status(400).send();
         return;
     });
 
@@ -230,16 +306,22 @@ async function launchFrontend(){
     await launchBackend();
     // Electron API
     app.whenReady().then(() => {
-        // ipcMain.on('save-settings', (event, setting) => {
-        //     console.log(setting);
-        // });
+        ipcMain.on('selectDirectory', async (event) => {
+            const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
+            if(!dir.canceled && dir.filePaths.length > 0){
+                console.log(dir);
+                // await createWordBank(context.name, dir.filePaths[0]);
+                // save(settings);
+                event.returnValue = dir.filePaths[0];
+            }
+        });
         const win = new BrowserWindow({
             width: 400,
             height: 600,
-            // webPreferences: {
-            //   preload: path.join(srcDirectory, 'js', 'bridge.js')
-            // }
-            })
+            webPreferences: {
+              preload: path.join(srcDirectory, 'js', 'bridge.js')
+            }
+        })
         win.loadURL(`http://localhost:${settings.port}/`)
         // win.webContents.send('load-settings', {
         //     port: port

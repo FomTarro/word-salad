@@ -41,6 +41,12 @@
             <!--  -->
             <div class="contentTab flex" id="wordListTab">
                 <div>
+                    <div>
+                        <label class="bold" for="wordDirectorySelect">Default</label>
+                    </div>    
+                    <button id="wordDirectorySelect">Select Word Directory</button> <span id="wordDirectoryDisplay">...</span>
+                </div>
+                <div>
                     <button id="wordRefresh">Refresh List</button>
                 </div>
                 <ul id="wordList">
@@ -50,18 +56,23 @@
         </div>
     </body>
     <script>
-
+        const DEFAULT_BANK = "Default";
+        document.getElementById("wordDirectorySelect").addEventListener('click', async () => {
+            const dir = await window.electronAPI.selectDirectory();
+            document.getElementById("wordDirectoryDisplay").innerHTML = dir;
+            console.log(dir);
+        })
         document.getElementById('source').value = `http://${window.location.host}/speaker`;
         const speakInput = document.getElementById('speak');
         document.getElementById('speakButton').addEventListener('click', async () => {
             console.log(`Saying: ${speakInput.value}`);
-            const response = await fetch(`/speak?phrase=${speakInput.value}`, {
+            const response = await fetch(`/speak?bank=${DEFAULT_BANK}&phrase=${speakInput.value}`, {
                 method: "GET",
             });
         });
 
-        async function getWordList() {
-            const settings = await fetch(`/words`, {
+        async function getWordListForBank(bank) {
+            const settings = await fetch(`/banks/${bank}/words`, {
                 method: "GET",
             });
             const body = await settings.json();
@@ -77,9 +88,9 @@
             }
         }
         document.getElementById("wordRefresh").addEventListener('click', async () => {
-            getWordList();
+            getWordListForBank(DEFAULT_BANK);
         })
-        getWordList();
+        getWordListForBank(DEFAULT_BANK);
 
         async function load(){
             const settings = await fetch(`/load`, {
@@ -100,7 +111,7 @@
                 const data = {
                     [setting.id] : setting.value
                 };
-                const response = await fetch("/save", {
+                const response = await fetch("/save/general", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

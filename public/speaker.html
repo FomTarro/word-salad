@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
     <script>
-        function speak(commands) {
+        function speak(request) {
             const chunks = []
             const ready = [];
-            for(const command of commands){
+            for(const command of request.commands){
                 // if it's a file
                 if(command.path){
-                    const clip = new Audio(`./words/${command.path}`);
+                    const clip = new Audio(`./banks/${request.bank}/?wordPath=${command.path}`);
                     clip.oncanplaythrough = () => {
                         ready.push(true);
                         if(ready.length == chunks.length){
@@ -57,8 +57,8 @@
             socket.onmessage = (message) => {
                 console.log(message.data)
                 const data = JSON.parse(message.data);
-                if(data.files){
-                    speak(data.files);
+                if(data.commands && data.bank){
+                    speak(data);
                 }
             }
             socket.onclose = () => {
