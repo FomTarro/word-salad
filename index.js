@@ -11,7 +11,12 @@ const publicDirectory = path.join(__dirname, './public');
 const wordsDirectory = path.join(publicDirectory, "words");
 let wordsDictionary = new Map();
 
+const siblingPath = process.env.PORTABLE_EXECUTABLE_DIR;
+
+const settingsFileName = path.join(siblingPath ?? __dirname,`settings.json`);
 let settings = {
+    tempPath: srcDirectory,
+    settingsPath: settingsFileName,
     delay: 500,
     port: 8095
 }
@@ -33,8 +38,6 @@ function merge(a, b){
     }
     return c;
 }
-
-const settingsFileName = `settings.json`;
 
 function save(data) {
     settings = merge(settings, data)
@@ -85,13 +88,13 @@ async function parseDictionary() {
     return dict;
 }
 
-fs.watch(wordsDirectory, async e => {
-    try{
-        wordsDictionary = await parseDictionary();
-    }catch(e){
+// fs.watch(wordsDirectory, async e => {
+//     try{
+//         wordsDictionary = await parseDictionary();
+//     }catch(e){
 
-    }
-});
+//     }
+// });
 
 /**
  * @typedef {Object} Command

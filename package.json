@@ -1,10 +1,11 @@
 {
   "name": "word-salad",
-  "version": "1.0.0",
-  "description": "Twitch TTS redeem that uses sentence mixing instead of synthesis.",
+  "version": "0.1.0",
+  "description": "Text-to-speech processor that uses sentence mixing instead of synthesis.",
   "main": "index.js",
   "scripts": {
     "start": "electron .",
+    "build": "npx electron-builder build",
     "test": "test"
   },
   "repository": {
@@ -28,7 +29,14 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.6.0",
-    "electron": "^33.3.1"
+    "electron": "34.0.1",
+    "electron-builder": "24.6.3"
+  },
+  "build": {
+    "appId": "word-salad.skeletom.net",
+    "productName": "Word Salad",
+    "win": {
+      "target": ["portable"]
+    }
   }
 }

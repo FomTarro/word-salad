@@ -13,8 +13,11 @@ If you're building this from source, you will need:
 - Node.js
 - npm
 
-From there, fire up terminal and run good old `npm install`. Then, you can launch the application with `npm start`. This should fire up Electron and open a window with the UI.
+From there, fire up terminal and run good old `npm install`. Then, you can launch the application with `npm run start`. This should fire up Electron and open a window with the UI.
 
+You can also package it into a portable executable file by running `npm run build`, which will output into the `dist` folder.
+
+## Adding Words
 Obviously, I can't ship this application pre-filled with audio that I don't own, so you'll have to supply your own word bank. Kindly place your audio files in `public/words`, with the filenames formatted as `word_number.wav`. The filename informs the application what each word is. For example, `the_02.wav` represents a variant of the word `the`. Subfolders within the `public/words` folder are allowed.
 
 If you're looking for a good jumping-off point, I found the [Wikipeda List of the 100 most common words in the English Language](https://en.wikipedia.org/wiki/Most_common_words_in_English) to be a useful guide in determining which words were most important to find and add to the word bank from my chosen source.
