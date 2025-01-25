@@ -266,6 +266,7 @@ async function launchBackend() {
         if(req.params && req.params.bankName){
             const bank = bankMap.get(req.params.bankName)
             if(bank){
+                createWordBank(bank.name, bank.path);
                 console.log(`Bank contains ${bank.words.size} words!`);
                 res.status(200).send([...bank.words.keys()]);
                 return;
@@ -320,8 +321,6 @@ async function launchFrontend(){
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
             if(!dir.canceled && dir.filePaths.length > 0){
                 console.log(dir);
-                // await createWordBank(context.name, dir.filePaths[0]);
-                // save(settings);
                 event.returnValue = dir.filePaths[0];
             }else{
                 event.returnValue = undefined;
