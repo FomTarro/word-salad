@@ -25,6 +25,7 @@
             </div>
             <hr>
             <div class="contentTab flex" id="mainTab">
+            <!-- LOL? -->
                 <div>
                     <div>
                         <label class="bold" for="port">Port</label>
@@ -44,10 +45,10 @@
                     <div>
                         <label class="bold" for="wordDirectorySelect">Default</label>
                     </div>    
-                    <button id="wordDirectorySelect">Select Word Directory</button> <span id="wordDirectoryDisplay">...</span>
+                    <button id="wordDirectorySelect">Select Word Directory</button> <span id="wordDirectoryDisplay" class="overflowHidden">...</span>
                 </div>
                 <div>
-                    <button id="wordRefresh">Refresh List</button>
+                    <label class="bold" for="wordList">Word List</label> <button id="wordRefresh">Refresh List</button>
                 </div>
                 <ul id="wordList">
                     <!-- Words go here -->
@@ -59,8 +60,22 @@
         const DEFAULT_BANK = "Default";
         document.getElementById("wordDirectorySelect").addEventListener('click', async () => {
             const dir = await window.electronAPI.selectDirectory();
-            document.getElementById("wordDirectoryDisplay").innerHTML = dir;
-            console.log(dir);
+            if(dir){
+                document.getElementById("wordDirectoryDisplay").innerHTML = dir;
+                console.log(dir);
+                const data = {
+                    name: DEFAULT_BANK,
+                    path: dir,
+                };
+                const response = await fetch("/save/bank", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data)
+                });
+                getWordListForBank(DEFAULT_BANK);
+            }
         })
         document.getElementById('source').value = `http://${window.location.host}/speaker`;
         const speakInput = document.getElementById('speak');

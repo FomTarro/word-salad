@@ -13,6 +13,10 @@ hr {
     width: 100%;
 }
 
+ul {
+    margin-top: 0.1em;
+}
+
 .flex {
     display: flex;
     flex-direction: column;
@@ -26,6 +30,10 @@ hr {
 
 .italic {
     font-style: italic;
+}
+
+.overflowHidden {
+    overflow-x: hidden;
 }
 
 .hidden {

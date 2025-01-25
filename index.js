@@ -245,6 +245,17 @@ async function launchBackend() {
         }
     });
 
+    
+    expressServer.post(['/save/bank',], async (req, res) => {
+        if(req.body && req.body.name && req.body.path){
+            createWordBank(req.body.name, req.body.path);
+            save(settings);
+        }else{
+            res.status(400).send();
+            return;
+        }
+    });
+
     expressServer.get(['/load',], async (req, res) => {
         res.status(200).send(settings);
         return;
@@ -270,7 +281,6 @@ async function launchBackend() {
         if(req.params && req.params.bankName && req.query.wordPath){
             const bank = bankMap.get(req.params.bankName);
             if(bank){
-                console.log(bank);
                 const filePath = path.join(bank.path, req.query.wordPath);
                 console.log(`Looking for: ${filePath}`);
                 res.status(200).sendFile(filePath);
@@ -313,6 +323,8 @@ async function launchFrontend(){
                 // await createWordBank(context.name, dir.filePaths[0]);
                 // save(settings);
                 event.returnValue = dir.filePaths[0];
+            }else{
+                event.returnValue = undefined;
             }
         });
         const win = new BrowserWindow({
