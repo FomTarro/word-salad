@@ -17,11 +17,29 @@ ul {
     margin-top: 0.1em;
 }
 
+select {
+    width: auto;
+    flex: 1;
+    max-width: 177px;
+    padding-block: 1px;
+    padding-inline: 2px;
+    height: 21px;
+    display: inline-block;
+}
+
 .flex {
     display: flex;
-    flex-direction: column;
     overflow: hidden;
-    gap: 0.5em;
+    gap: 0.25em;
+    width: 100%;
+}
+
+.column {
+    flex-direction: column;
+}
+
+.row {
+    flex-direction: row;
 }
 
 .bold {

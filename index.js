@@ -1,6 +1,7 @@
 const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
+const { v4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { app, dialog, BrowserWindow, ipcMain } = require('electron');
@@ -10,11 +11,13 @@ const srcDirectory = path.join(__dirname, './src');
 const publicDirectory = path.join(__dirname, './public');
 const siblingDirectory = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
 
+// indexed by UUID
 /** @type {Map<string, WordBank>} */
 const bankMap = new Map();
 
 /**
  * @typedef {Object} WordBank
+ * @property {string} uuid
  * @property {string} name
  * @property {string} path
  * @property {Map<string, string[]} words
@@ -26,10 +29,11 @@ let settings = {
     settingsPath: settingsFilePath,
     delay: 500,
     port: 8095,
-    banks: [],
+    /** @type {WordBank[]} */
+    banks: []
 }
 
-/** * For each property of object A, if object B has a value for that property, apply it to Object A.
+/** For each property of object A, if object B has a value for that property, apply it to Object A.
  * Returns a new instance/clone of A with the new values.
  * @param {object} a 
  * @param {object} b 
@@ -52,37 +56,41 @@ function save(data) {
     settings = merge(settings, data)
     settings.banks = [...[...bankMap.values()].map(val =>  { 
         return {
+            uuid: val.uuid,
             name: val.name,
             path: val.path,
         }
     })];
-    console.log([...bankMap.values()]);
     console.log(settings);
     fs.writeFileSync(settingsFilePath, JSON.stringify(settings));
 }
 
-async function load() {
+async function loadGlobalSettings() {
     console.log("Loading...");
     if (fs.existsSync(settingsFilePath)) {
         const data = JSON.parse(fs.readFileSync(settingsFilePath).toString());
         settings = merge(settings, data);
         const banks = [...settings.banks]
         for(const bank of banks){
-            createWordBank(bank.name, bank.path);
+            createWordBank(bank.name, bank.path, bank.uuid);
         }
     }
+    save(settings);
 }
 
 /**
  * Creates a new Word Bank and loads it into memory.
  * @param {string} name - The name of the bank.
- * @param {string} dir - The root directroy of the bank.
+ * @param {string} dir - The root directoy of the bank.
+ * @param {string} uuid - The UUID of the bank. If blank, one will be generated.
  */
-function createWordBank(name, dir){
-    console.log(`Creating word bank '${name}' from path: ${dir}`)
-    const dict = parseDictionary(dir);
+function createWordBank(name, dir, uuid){
+    uuid = uuid ?? v4();
+    console.log(`Creating word bank '${name}' from path: ${dir} with UUID ${uuid}`)
+    const dict = dir ? parseDictionary(dir) : new Map();
     console.log(`Bank has ${dict.size} words.`);
-    bankMap.set(name, {
+    bankMap.set(uuid, {
+        uuid: uuid,
         name: name,
         path: dir,
         words: dict
@@ -90,10 +98,19 @@ function createWordBank(name, dir){
 }
 
 /**
+ * 
+ * @param {string} name - Bank to find by name
+ * @returns {WordBank} - Found bank. Undefined if no such bank exists.
+ */
+function getWordBankByName(name){
+    return [...bankMap.values()].find(b => b.name === name);
+}
+
+/**
  * Recursively traverses a folder heirarchy.
  * @param {string} rootDir - The directory the search started in.
  * @param {string} currentDir - The directory of the current search.
- * @param {string[]} collection - Rolling list of file paths, relative to the root.
+ * @param {string[]} collection - Rolling list of all file paths, relative to the root.
  */
 function getFiles(rootDir, currentDir, collection) {
     const files = fs.readdirSync(currentDir);
@@ -104,7 +121,6 @@ function getFiles(rootDir, currentDir, collection) {
                 getFiles(rootDir, qualifiedPath, collection);
             } else {
                 const relativePath = qualifiedPath.replace(rootDir, "");
-                console.log(relativePath)
                 collection.push(relativePath);
             }
         } else {
@@ -182,7 +198,7 @@ function formSentence(phrase, dictionary){
 }
 
 async function launchBackend() {
-    await load();
+    await loadGlobalSettings();
     const expressServer = express();
     expressServer.use(express.json());
     expressServer.use('/', express.static(publicDirectory));
@@ -225,11 +241,12 @@ async function launchBackend() {
         return;
     });
 
-    expressServer.post(['/save/general',], async (req, res) => {
+    expressServer.post(['/save/global',], async (req, res) => {
         if(req.body){
             save(req.body);
             if(req.body.port){
                 res.status(200).send();
+                // reboot backend
                 console.log("closing http server...");
                 server.closeAllConnections();
                 server.close(async () => {
@@ -245,11 +262,47 @@ async function launchBackend() {
         }
     });
 
-    
     expressServer.post(['/save/bank',], async (req, res) => {
-        if(req.body && req.body.name && req.body.path){
-            createWordBank(req.body.name, req.body.path);
+        if(req.body){
+            if(req.body.uuid){
+                let bank = bankMap.get(req.body.uuid)
+                if(bank){
+                    bank = merge(bank, req.body);
+                    save(settings);
+                    res.status(200).send();
+                    return;
+                }else{
+                    res.status(400).send();
+                    return;
+                }
+            }else{
+                createWordBank("New Word Bank");
+                save(settings);
+                res.status(200).send();
+            }
+        }else{
+            res.status(400).send();
+            return;
+        }
+    });
+
+    expressServer.post(['/delete/bank',], async (req, res) => {
+        if(req.body && req.body.uuid){
+            bankMap.delete(req.body.uuid);
             save(settings);
+            res.status(200).send();
+            return;
+        }else{
+            res.status(400).send();
+            return;
+        }
+    });
+
+    expressServer.post(['/create/bank',], async (req, res) => {
+        if(req.body && req.body.uuid){
+            bankMap.delete(req.body.uuid);
+            res.status(200).send();
+            return;
         }else{
             res.status(400).send();
             return;
@@ -262,11 +315,11 @@ async function launchBackend() {
     });
 
     // get list of all words
-    expressServer.get(['/banks/:bankName/words',], async (req, res) => {
-        if(req.params && req.params.bankName){
-            const bank = bankMap.get(req.params.bankName)
+    expressServer.get(['/banks/:bank/words',], async (req, res) => {
+        if(req.params && req.params.bank){
+            const bank = getWordBankByName(req.params.bank)
             if(bank){
-                createWordBank(bank.name, bank.path);
+                createWordBank(bank.name, bank.path, bank.uuid);
                 console.log(`Bank contains ${bank.words.size} words!`);
                 res.status(200).send([...bank.words.keys()]);
                 return;
@@ -278,9 +331,9 @@ async function launchBackend() {
     });
 
     // get specific word file
-    expressServer.get(['/banks/:bankName',], async (req, res) => {
-        if(req.params && req.params.bankName && req.query.wordPath){
-            const bank = bankMap.get(req.params.bankName);
+    expressServer.get(['/banks/:bank',], async (req, res) => {
+        if(req.params && req.params.bank && req.query.wordPath){
+            const bank = getWordBankByName(req.params.bank);
             if(bank){
                 const filePath = path.join(bank.path, req.query.wordPath);
                 console.log(`Looking for: ${filePath}`);
@@ -288,14 +341,14 @@ async function launchBackend() {
                 return;
             }
         }
-        res.status(404);
+        res.status(404).send();
         return;
     });
 
     expressServer.get(['/speak',], async (req, res) => {
         if(req.query && req.query.phrase && req.query.bank){
             console.log(`Attempting to say: ${req.query.phrase}`);
-            const bank = bankMap.get(req.query.bank);
+            const bank = getWordBankByName(req.query.bank);
             if(bank){
                 const commands = formSentence(req.query.phrase, bank.words);
                 sendToWsClients({ 

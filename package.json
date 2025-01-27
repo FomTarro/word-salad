@@ -26,6 +26,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "uuid": "^11.0.5",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -36,7 +37,9 @@
     "appId": "word-salad.skeletom.net",
     "productName": "Word Salad",
     "win": {
-      "target": ["portable"]
+      "target": [
+        "portable"
+      ]
     }
   }
 }
