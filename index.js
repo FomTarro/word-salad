@@ -59,6 +59,7 @@ function save(data) {
             uuid: val.uuid,
             name: val.name,
             path: val.path,
+            delay: val.delay,
         }
     })];
     console.log(settings);
@@ -67,10 +68,12 @@ function save(data) {
 
 async function loadGlobalSettings() {
     console.log("Loading...");
-    if (fs.existsSync(settingsFilePath)) {
-        const data = JSON.parse(fs.readFileSync(settingsFilePath).toString());
-        settings = merge(settings, data);
-        const banks = [...settings.banks]
+    const data = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath).toString()) : {};
+    settings = merge(settings, data);
+    const banks = [...settings.banks]
+    if(banks.length <= 0){
+        createWordBank("Default")
+    }else{
         for(const bank of banks){
             createWordBank(bank.name, bank.path, bank.uuid);
         }
@@ -95,6 +98,7 @@ function createWordBank(name, dir, uuid){
         path: dir,
         words: dict
     });
+    return bankMap.get(uuid);
 }
 
 /**
@@ -265,9 +269,9 @@ async function launchBackend() {
     expressServer.post(['/save/bank',], async (req, res) => {
         if(req.body){
             if(req.body.uuid){
-                let bank = bankMap.get(req.body.uuid)
+                const bank = bankMap.get(req.body.uuid)
                 if(bank){
-                    bank = merge(bank, req.body);
+                    bankMap.set(req.body.uuid, merge(bank, req.body));
                     save(settings);
                     res.status(200).send();
                     return;
@@ -319,9 +323,10 @@ async function launchBackend() {
         if(req.params && req.params.bank){
             const bank = getWordBankByName(req.params.bank)
             if(bank){
-                createWordBank(bank.name, bank.path, bank.uuid);
-                console.log(`Bank contains ${bank.words.size} words!`);
-                res.status(200).send([...bank.words.keys()]);
+                // refresh
+                const updated = createWordBank(bank.name, bank.path, bank.uuid);
+                console.log(`Bank contains ${updated.words.size} words!`);
+                res.status(200).send([...updated.words.keys()]);
                 return;
             }
         }

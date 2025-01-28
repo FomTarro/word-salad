@@ -30,16 +30,22 @@ select {
 .flex {
     display: flex;
     overflow: hidden;
-    gap: 0.25em;
     width: 100%;
 }
 
 .column {
     flex-direction: column;
+    gap: 0.5em;
+
 }
 
 .row {
     flex-direction: row;
+    gap: 0.25em;
+}
+
+.scroll {
+    overflow-y: scroll;
 }
 
 .bold {
@@ -61,5 +67,4 @@ select {
 
 .contentTab {
     height: auto;
-    overflow-y: scroll;
 }
