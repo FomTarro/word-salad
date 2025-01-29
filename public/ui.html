@@ -2,7 +2,7 @@
 <html>
     <link rel="stylesheet" type="text/css" href='/css/style.css'>
     <body class="flex column">
-        <h2>Word Salad v0.1</h2>
+        Word Salad v0.1
         <hr>
         <div class="flex column">
             <div>
@@ -43,15 +43,22 @@
                         <input class="bankSetting" id="name" type="text">
                         <button id="deleteButton">Delete Word Bank</button>
                     </div>
+                    <div>
+                        <label class="bold" for="uuid">Bank ID</label>
+                        <div>
+                            <input id="uuid" type="text" readonly>
+                            <button>Copy</button>
+                        </div>
+                    </div>
                     <div>   
                         <button id="directorySelect">Select File Directory</button> 
-                        <span id="directoryDisplay" class="italic">...</span>
+                        <span id="path" class="italic">...</span>
                     </div>
                     <div>
                         <div>
                             <label class="bold" for="delay">Punctuation Pause Duration</label>
                         </div>
-                        <input class="globalSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+                        <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
                     </div>
                     <div>
                         <div>
@@ -72,7 +79,7 @@
             return dropdown.options[dropdown.selectedIndex] ?? {};
         }
         dropdown.addEventListener('change', async () => {
-
+            populateWordBankData();
         });
 
         document.getElementById('createButton').addEventListener('click', async () => {
@@ -116,6 +123,26 @@
             }
         }
 
+        async function populateWordBankData(){
+            const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            const bank = await response.json();
+            for(const property in bank){
+                console.log(`${property} : ${bank[property]}`);
+                const elem = document.getElementById(property);
+                if(elem){
+                    elem.value = bank[property];
+                }
+            }
+            document.getElementById("path").innerHTML = bank.path ?? "...";
+            getWordListForBank(bank.uuid);
+        }
+
+
         // document.getElementById("wordRefresh").addEventListener('click', async () => {
         //     getWordListForBank(DEFAULT_BANK);
         // });
@@ -153,8 +180,7 @@
                     existingOption.innerHTML = bank.name;
                 }
             }
-
-            getWordListForBank(getSelectedWordBank().text);
+            populateWordBankData();
         }
         
         async function saveGlobalSetting(key, value){
@@ -204,9 +230,7 @@
         document.getElementById("directorySelect").addEventListener('click', async () => {
             const dir = await window.electronAPI.selectDirectory();
             if(dir){
-                document.getElementById("directoryDisplay").innerHTML = dir;
                 await saveBankSetting('path', dir);
-                getWordListForBank(getSelectedWordBank().text);
             }
         })
 
@@ -230,13 +254,12 @@
         const speakInput = document.getElementById('speak');
         document.getElementById('speakButton').addEventListener('click', async () => {
             console.log(`Saying: ${speakInput.value}`);
-            const response = await fetch(`/speak?bank=${getSelectedWordBank().text}&phrase=${speakInput.value}`, {
+            const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`, {
                 method: "GET",
             });
         });
 
         load();
-        getWordListForBank(getSelectedWordBank().text);
         openTab('mainTab');
     </script>
 </html>

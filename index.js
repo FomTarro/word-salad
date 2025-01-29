@@ -28,7 +28,6 @@ const settingsFilePath = path.join(siblingDirectory ,`settings.json`);
 let settings = {
     tempPath: srcDirectory,
     settingsPath: settingsFilePath,
-    delay: 500,
     port: 8095,
     /** @type {WordBank[]} */
     banks: []
@@ -73,10 +72,10 @@ async function loadGlobalSettings() {
     settings = merge(settings, data);
     const banks = [...settings.banks]
     if(banks.length <= 0){
-        createWordBank("Default")
+        createWordBank()
     }else{
         for(const bank of banks){
-            createWordBank(bank.name, bank.path, bank.uuid);
+            createWordBank(bank);
         }
     }
     save(settings);
@@ -84,21 +83,21 @@ async function loadGlobalSettings() {
 
 /**
  * Creates a new Word Bank and loads it into memory.
- * @param {string} name - The name of the bank.
- * @param {string} dir - The root directoy of the bank.
- * @param {string} uuid - The UUID of the bank. If blank, one will be generated.
+ * @param {WordBank} bankData - Data about the bank. Blank fields will be populated automatically.
  */
-function createWordBank(name, dir, uuid){
-    // TODO, make this just take in a WordBank object, 
-    // returning a new instance based on properties from the source
-    uuid = uuid ?? v4();
-    console.log(`Creating word bank '${name}' from path: ${dir} with UUID ${uuid}`)
-    const dict = dir ? parseDictionary(dir) : new Map();
+function createWordBank(bankData){
+    const data = bankData ?? {};
+    const uuid = data.uuid ?? v4();
+    const name = data.name ?? "New Word Bank";
+    const delay = data.delay ?? 500;
+    console.log(`Creating word bank '${data.name}' from path: ${data.path} with UUID ${data.uuid}`)
+    const dict = data.path ? parseDictionary(data.path) : new Map();
     console.log(`Bank has ${dict.size} words.`);
     bankMap.set(uuid, {
         uuid: uuid,
         name: name,
-        path: dir,
+        path: data.path,
+        delay: delay,
         words: dict
     });
     return bankMap.get(uuid);
@@ -106,11 +105,11 @@ function createWordBank(name, dir, uuid){
 
 /**
  * 
- * @param {string} name - Bank to find by name
+ * @param {string} name - Bank to find by UUID
  * @returns {WordBank} - Found bank. Undefined if no such bank exists.
  */
-function getWordBankByName(name){
-    return [...bankMap.values()].find(b => b.name === name);
+function getWordBankByUuid(uuid){
+    return bankMap.get(uuid);
 }
 
 /**
@@ -182,7 +181,7 @@ function parseDictionary(dir) {
  * @param {Map<string, string[]>} dictionary - The list of available word variants, indexed by word.
  * @return {Command[]} commands - List of commands to process by the client.
  */
-function formSentence(phrase, dictionary){
+function formSentence(phrase, delay, dictionary){
     const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
     const split = [...segmenter.segment(phrase.toLowerCase())]
         .filter((e) => e.segment.trim() !== "");
@@ -197,7 +196,7 @@ function formSentence(phrase, dictionary){
             }
         }else{
             commands.push({
-                delay: settings.delay,
+                delay: delay,
             })
         }
     }
@@ -300,7 +299,7 @@ async function launchBackend() {
     });
 
     expressServer.post(['/create/bank',], async (req, res) => {
-        createWordBank("New Word Bank");
+        createWordBank();
         save(settings);
         res.status(200).send();
         return;
@@ -312,9 +311,10 @@ async function launchBackend() {
     });
 
     // get bank data
-    expressServer.get(['/banks/:bank',], async (req, res) => {
-        if(req.params && req.params.bank){
-            const bank = getWordBankByName(req.params.bank)
+    expressServer.get(['/banks/:uuid',], async (req, res) => {
+        if(req.params && req.params.uuid){
+            const bank = getWordBankByUuid(req.params.uuid)
+            console.log(bank);
             if(bank){
                 res.status(200).send(bank);
                 return;
@@ -325,12 +325,12 @@ async function launchBackend() {
     });
 
     // get list of all words
-    expressServer.get(['/banks/:bank/words',], async (req, res) => {
-        if(req.params && req.params.bank){
-            const bank = getWordBankByName(req.params.bank)
+    expressServer.get(['/banks/:uuid/words',], async (req, res) => {
+        if(req.params && req.params.uuid){
+            const bank = getWordBankByUuid(req.params.uuid)
             if(bank){
                 // refresh
-                const updated = createWordBank(bank.name, bank.path, bank.uuid);
+                const updated = createWordBank(bank);
                 console.log(`Bank contains ${updated.words.size} words!`);
                 res.status(200).send([...updated.words.keys()]);
                 return;
@@ -341,11 +341,11 @@ async function launchBackend() {
     });
 
     // get specific word file
-    expressServer.get(['/banks/:bank',], async (req, res) => {
-        if(req.params && req.params.bank && req.query.wordPath){
-            const bank = getWordBankByName(req.params.bank);
+    expressServer.get(['/banks/:uuid/word',], async (req, res) => {
+        if(req.params && req.params.uuid && req.query.path){
+            const bank = getWordBankByUuid(req.params.uuid);
             if(bank){
-                const filePath = path.join(bank.path, req.query.wordPath);
+                const filePath = path.join(bank.path, req.query.path);
                 console.log(`Looking for: ${filePath}`);
                 res.status(200).sendFile(filePath);
                 return;
@@ -358,11 +358,11 @@ async function launchBackend() {
     expressServer.get(['/speak',], async (req, res) => {
         if(req.query && req.query.phrase && req.query.bank){
             console.log(`Attempting to say: ${req.query.phrase}`);
-            const bank = getWordBankByName(req.query.bank);
+            const bank = getWordBankByUuid(req.query.bank);
             if(bank){
-                const commands = formSentence(req.query.phrase, bank.words, bank.delay);
+                const commands = formSentence(req.query.phrase, bank.delay, bank.words);
                 sendToWsClients({ 
-                    bank: bank.name,
+                    bank: bank.uuid,
                     commands: commands 
                 });
                 res.status(200).send();

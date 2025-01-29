@@ -7,7 +7,8 @@
             for(const command of request.commands){
                 // if it's a file
                 if(command.path){
-                    const clip = new Audio(`./banks/${request.bank}/?wordPath=${command.path}`);
+                    const clip = new Audio(`./banks/${request.bank}/word?path=${command.path}`);
+                    console.log(clip);
                     clip.oncanplaythrough = () => {
                         ready.push(true);
                         if(ready.length == chunks.length){
