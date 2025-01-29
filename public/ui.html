@@ -2,22 +2,28 @@
 <html>
     <link rel="stylesheet" type="text/css" href='/css/style.css'>
     <body class="flex column">
-        Word Salad v0.1
+        <div>
+            <label class="bold">Word Salad v0.1</label> - <span>New version available!</span>
+        </div>
         <hr>
         <div class="flex column">
             <div>
-                <div>
-                    <label class="bold" for="port">Port</label>
-                </div>
-                <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
-            </div>
-            <div>
-                <div>
-                    <label class="bold" for="source">Browser Source URL</label>
-                </div>
                 <div class="flex row">
-                    <input id="source" name="source" type="text" readonly>
-                    <button class="copy">Copy</button>
+                    <div class="flex column noGap noGrow">
+                        <div>
+                            <label class="bold" for="port">Port</label>
+                        </div>
+                        <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                    </div>
+                    <div class="flex column noGap grow">
+                        <div>
+                            <label class="bold" for="source">Browser Source URL</label>
+                        </div>
+                        <div class="flex row">
+                            <input id="source" name="source" type="text" readonly>
+                            <button target="source" class="wordButton copy">Copy</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div>
@@ -25,7 +31,16 @@
                     <div>
                         <label class="bold" for="speak">Say A Phrase...</label>
                     </div>
-                    <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+                    <div class="flex column">
+                        <div class="flex row">
+                            <input id="speak" name="speak" type="text"> 
+                            <button class="wordButton" id="speakButton">Speak!</button>
+                        </div>
+                        <div class="flex row">
+                            <input id="speakUrl" name="speakUrl" type="text" readonly>
+                            <button target="speakUrl" class="wordButton copy">Copy</button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <hr>
@@ -37,55 +52,81 @@
                     <select id="selectDropdown">
 
                     </select>
-                    <button id="createButton">New</button>
+                    <button id="createButton" class="green">+</button>
+                    <button id="deleteButton" class="red">-</button>
                 </div>
             </div>
             <hr>
             <div class="contentTab flex column" id="mainTab">
-                <div class="flex column scroll">
+                <div class="flex column">
                     <div>
                         <div class="flex row">
-                            <input class="bankSetting bold" id="name" type="text">
-                            <button id="deleteButton">Delete</button>
+                            <input class="bankSetting" id="name" type="text">
+                            <input id="uuid" type="text" readonly>
+                            <button target="uuid" class="wordButton copy">Copy</button>
                         </div>
                     </div>
-                    <div>
+                    <!-- <div>
                         <label class="bold" for="uuid">Bank ID</label>
                         <div class="flex row">
                             <input id="uuid" type="text" readonly>
-                            <button class="copy">Copy</button>
+                            <button target="uuid" class="copy">Copy</button>
                         </div>
-                    </div>
-                    <div>   
-                        <button id="directorySelect">Select File Directory</button> 
-                        <span id="path" class="italic">...</span>
+                    </div> -->
+                    <div>
+                        <div class="flex row">
+                            <button id="directorySelect" class="wordButton">Select File Folder</button> 
+                            <span id="path" class="italic">...</span>
+                        </div>
                     </div>
                     <div>
                         <div>
                             <label class="bold" for="delay">Punctuation Pause Duration</label>
                         </div>
-                        <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
-                    </div>
-                    <div>
                         <div class="flex row">
-                            <label class="bold" for="wordList">Word List</label> <button id="wordRefresh">Refresh List</button>
+                            <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500"> 
+                            <span class="italic">milliseconds</span>
                         </div>
-                        <ul id="wordList">
-                        
-                        </ul>
+                    </div>
+                    <div class="flex column noGap">
+                        <div>
+                            <label class="bold" for="wordList">Word List</label> 
+                            <!-- <button id="wordRefresh">Refresh List</button> -->
+                        </div>
+                        <div class="flex scroll frame">
+                            <ul id="wordList">
+                            
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- <div id="saveIndicator" class="green"></div> -->
     </body>
     <script>
+
+        /**
+         * Takes a word over x characters and inserts a ... in the center.
+         * @param {string} word - The word to abridge.
+         * @param {number} maxLength - The maximum length to allow.
+         * @returns {string} The abridged word.
+         */
+        function abridgeWord(word, maxLength) {
+            const half = Math.floor((maxLength - 3) / 2)
+            if (word.length > maxLength) {
+            return word.substring(0, half) + '...' + word.substring(word.length-half, word.length);
+            }
+            return word;
+        }
+
         document.getElementById('source').value = `http://${window.location.host}/speaker`;
         const dropdown = document.getElementById('selectDropdown');
         function getSelectedWordBank(){
             return dropdown.options[dropdown.selectedIndex] ?? {};
         }
         dropdown.addEventListener('change', async () => {
-            populateWordBankData();
+            await populateWordBankData();
         });
 
         document.getElementById('createButton').addEventListener('click', async () => {
@@ -95,7 +136,9 @@
                     "Content-Type": "application/json",
                 }
             });
-            load();
+            await load();
+            dropdown.value = dropdown.options[dropdown.options.length - 1].value;
+            await populateWordBankData()
         });
 
         document.getElementById('deleteButton').addEventListener('click', async () => {
@@ -109,7 +152,7 @@
                 },
                 body: JSON.stringify(data)
             });
-            load();
+            await load();
         });
 
         async function getWordListForBank(bank) {
@@ -130,6 +173,7 @@
         }
 
         async function populateWordBankData(){
+            console.log("Populating for word bank:" + getSelectedWordBank().value);
             const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
                 method: "GET",
                 headers: {
@@ -138,13 +182,14 @@
             });
             const bank = await response.json();
             for(const property in bank){
-                console.log(`${property} : ${bank[property]}`);
+                // console.log(`${property} : ${bank[property]}`);
                 const elem = document.getElementById(property);
                 if(elem){
                     elem.value = bank[property];
                 }
             }
-            document.getElementById("path").innerHTML = bank.path ?? "...";
+            document.getElementById("path").innerHTML = bank.path ? abridgeWord(bank.path, 32) : "...";
+            document.getElementById("speakUrl").value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`;
             getWordListForBank(bank.uuid);
         }
 
@@ -159,7 +204,7 @@
             });
             const settings = await response.json()
             for(const property in settings){
-                console.log(`${property} : ${settings[property]}`);
+                // console.log(`${property} : ${settings[property]}`);
                 const elem = document.getElementById(property);
                 if(elem){
                     elem.value = settings[property];
@@ -186,7 +231,7 @@
                     existingOption.innerHTML = bank.name;
                 }
             }
-            populateWordBankData();
+            await populateWordBankData();
         }
         
         async function saveGlobalSetting(key, value){
@@ -203,7 +248,7 @@
             if(key === "port"){
                 window.location.href = `http://localhost:${value}/`
             }
-            load();
+            await load();
         }
         
         for(const setting of document.getElementsByClassName('globalSetting')){
@@ -224,7 +269,7 @@
                 },
                 body: JSON.stringify(data)
             });
-            load();
+            await load();
         }
 
         for(const setting of document.getElementsByClassName('bankSetting')){
@@ -255,6 +300,16 @@
             button.addEventListener("click", async () => {
                 openTab(button.getAttribute('target'));
             });
+        }
+
+        for(const button of document.getElementsByClassName('copy')){
+            button.addEventListener("click", async () => {
+                const target = document.getElementById(button.getAttribute("target"));
+                target.select();
+                navigator.clipboard.writeText(
+                    target.value
+                );
+            })
         }
 
         const speakInput = document.getElementById('speak');

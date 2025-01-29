@@ -1,7 +1,6 @@
 html {
     height: 100%;
     background-color: gainsboro;
-    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
 }
 body {
     overflow: hidden;
@@ -13,45 +12,95 @@ body {
 
 hr {
     width: 100%;
+    margin: 0;
+}
+
+label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 ul {
-    margin-top: 0.1em;
+    width: 100%;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    padding: 0.25rem;
+    padding-left: 0.5rem;
+    width: 100%;
+}
+
+li::marker{
+    display: none;
+}
+
+li:nth-child(even){
+    background-color: white;
 }
 
 select {
-    width: auto;
+    /* width: auto; */
     flex: 1;
     /* max-width: 177px;
     padding-block: 1px;
     padding-inline: 2px;
     height: 21px; */
-    display: inline-block;
+    /* display: inline-block; */
 }
 
 button, input, select{
-    padding: 0.5em;
-    border-radius: 0.75rem;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
     border: 2px solid dimgray;
-    max-width: 60%;
-    min-height: 1em;
+    box-sizing: content-box;
+    /* width: 100%; */
+    min-width: 1rem;
+    max-height: 1rem;
+    align-content: center;
+}
+
+input:read-only{
+    font-style: italic;
+    color: rgba(1,1,1,0.65);
+}
+
+input[type="text"]{
+    flex-grow: 1;
+}
+
+input[type="number"]{
+    width: 4rem;
+    flex-grow: 0;
+}
+
+button {
+    flex-shrink: 0;
+}
+
+button:active{
+    background-color: khaki;
+    border-color: darkkhaki;
 }
 
 .flex {
     display: flex;
     overflow: hidden;
-    width: 100%;
 }
 
 .column {
     flex-direction: column;
-    gap: 0.5em;
+    gap: 0.5rem;
 
 }
 
 .row {
     flex-direction: row;
-    gap: 0.25em;
+    gap: 0.25rem;
+    align-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 .scroll {
@@ -60,7 +109,7 @@ button, input, select{
 
 .bold {
     font-weight: bold;
-    font-size: 1.2em;
+    font-size: 1.2rem;
 }
 
 .italic {
@@ -76,6 +125,55 @@ button, input, select{
     height: 0px !important;
 }
 
+.noGap {
+    gap:0;
+}
+
+.noGrow {
+    width: auto;
+    flex-grow: 0;
+}
+
+.grow {
+    flex-grow: 1;
+}
+
+.noShrink {
+    flex-shrink: 0;
+}
+
 .contentTab {
     height: auto;
+}
+
+.frame {
+    border-radius: 0.75rem;
+    border: 2px solid dimgray;
+    box-sizing: border-box;
+    background-color: whitesmoke;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.red {
+    background-color: salmon;
+    color: white;
+}
+
+.green {
+    background-color: lightgreen;
+    color: white;
+}
+
+.wordButton {
+    min-width: 3rem;
+}
+
+#path {
+    overflow-x: hidden;
+}
+
+#saveIndicator {
+    font-size: 0.5em;
+    height: 0.5em;
 }
