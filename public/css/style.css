@@ -40,6 +40,11 @@ li:nth-child(even){
     background-color: white;
 }
 
+button:hover, li:hover{
+    color: salmon;
+    background-color: khaki;
+}
+
 select {
     /* width: auto; */
     flex: 1;
