@@ -1,4 +1,4 @@
-# Word Salad v1.0.0
+# Word Salad v0.1.0
 
 ## The What
 "Word Salad" is a **text-to-speech application** with a **twist**: instead of using speech synthesis, it instead uses **sentence mixing**. By providing pre-recorded words as individual files, "Word Salad" is able to assemble sentences to play back as audio. Perfect for Twitch redeems and the like! 

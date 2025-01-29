@@ -1,6 +1,6 @@
 {
   "name": "word-salad",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Text-to-speech processor that uses sentence mixing instead of synthesis.",
   "main": "index.js",
   "scripts": {

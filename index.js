@@ -271,6 +271,16 @@ async function launchBackend() {
         return;
     });
 
+    /**
+     * Checks to see if Version A is older than Version B. 
+     * @param {string} versionA formatted as x.x.x
+     * @param {string} versionB formatted as x.x.x
+     * @returns True if Version A is older than Version B. False otherwise.
+     */
+    function isOlderThan(versionA, versionB) {
+		return versionA == undefined || versionA.length <= 0 || (versionB != undefined && versionA.localeCompare(versionB) < 0);
+	}
+
     expressServer.get(['/version',], async (req, res) => {
         let url = undefined;
         const newVersion = await fetch('https://www.skeletom.net/word-salad/version', {
@@ -278,6 +288,9 @@ async function launchBackend() {
         });
         if(newVersion.status >= 200 && newVersion.status < 400){
             parsed = await newVersion.json();
+            if(isOlderThan(VERSION, parsed.version)){
+                url = parsed.url;
+            }
         }
         res.status(200).send({
             version: VERSION,
