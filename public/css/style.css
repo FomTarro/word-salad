@@ -1,5 +1,6 @@
 html {
     height: 100%;
+    background-color: gainsboro;
 }
 body {
     overflow: hidden;
@@ -11,21 +12,109 @@ body {
 
 hr {
     width: 100%;
+    margin: 0;
+}
+
+label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 ul {
-    margin-top: 0.1em;
+    width: 100%;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    padding: 0.25rem;
+    padding-left: 0.5rem;
+    width: 100%;
+}
+
+li::marker{
+    display: none;
+}
+
+li:nth-child(even){
+    background-color: white;
+}
+
+select {
+    /* width: auto; */
+    flex: 1;
+    /* max-width: 177px;
+    padding-block: 1px;
+    padding-inline: 2px;
+    height: 21px; */
+    /* display: inline-block; */
+}
+
+button, input, select{
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    border: 2px solid dimgray;
+    box-sizing: content-box;
+    /* width: 100%; */
+    min-width: 1rem;
+    max-height: 1rem;
+    align-content: center;
+}
+
+input:read-only{
+    font-style: italic;
+    color: rgba(1,1,1,0.65);
+}
+
+input[type="text"]{
+    flex-grow: 1;
+}
+
+input[type="number"]{
+    width: 4rem;
+    flex-grow: 0;
+}
+
+button {
+    flex-shrink: 0;
+}
+
+button:active{
+    background-color: khaki;
+    border-color: darkkhaki;
+}
+code {
+    background-color: whitesmoke;
+    padding: 2px;
+    border-radius: 5px;
 }
 
 .flex {
     display: flex;
-    flex-direction: column;
     overflow: hidden;
-    gap: 0.5em;
+}
+
+.column {
+    flex-direction: column;
+    gap: 0.5rem;
+
+}
+
+.row {
+    flex-direction: row;
+    gap: 0.25rem;
+    align-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.scroll {
+    overflow-y: scroll;
 }
 
 .bold {
     font-weight: bold;
+    font-size: 1rem;
 }
 
 .italic {
@@ -41,7 +130,55 @@ ul {
     height: 0px !important;
 }
 
+.noGap {
+    gap:0;
+}
+
+.noGrow {
+    width: auto;
+    flex-grow: 0;
+}
+
+.grow {
+    flex-grow: 1;
+}
+
+.noShrink {
+    flex-shrink: 0;
+}
+
 .contentTab {
     height: auto;
-    overflow-y: scroll;
+}
+
+.frame {
+    border-radius: 0.75rem;
+    border: 2px solid dimgray;
+    box-sizing: border-box;
+    background-color: whitesmoke;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.red {
+    background-color: salmon;
+    color: white;
+}
+
+.green {
+    background-color: lightgreen;
+    color: white;
+}
+
+.wordButton {
+    min-width: 3rem;
+}
+
+#path {
+    overflow-x: hidden;
+}
+
+#saveIndicator {
+    font-size: 0.5em;
+    height: 0.5em;
 }

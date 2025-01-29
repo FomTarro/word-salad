@@ -1,89 +1,178 @@
 <!DOCTYPE html>
 <html>
     <link rel="stylesheet" type="text/css" href='/css/style.css'>
-    <body class="flex">
-        <h2>Word Salad v0.1</h2>
-        <nav>
-            <button class="tabButton" target="mainTab">General</button>
-            <button class="tabButton" target="wordListTab">Word List</button>
-        </nav>
-        <hr>
-        <div class="flex">
+    <body class="flex column">
+        <div>
             <div>
-                <div>
-                    <label class="bold" for="source">Browser Source URL</label>
+                <label class="bold">Word Salad <span id="currentVersion">v1.0.0</span></label><span id="newVersion" class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span> 
+            </div>
+            <div>
+                <a href="/readme" target="_blank">Setup Guide</a>
+            </div>
+        </div>
+        <hr>
+        <div class="flex column">
+            <div>
+                <div class="flex row">
+                    <div class="flex column noGap noGrow">
+                        <div>
+                            <label class="bold" for="port">Port</label>
+                        </div>
+                        <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                    </div>
+                    <div class="flex column noGap grow">
+                        <div>
+                            <label class="bold" for="source">Browser Source URL</label>
+                        </div>
+                        <div class="flex row">
+                            <input id="source" name="source" type="text" readonly>
+                            <button target="source" class="wordButton copy">Copy</button>
+                        </div>
+                    </div>
                 </div>
-                <input id="source" name="source" type="text" readonly>
             </div>
             <div>
                 <form onSubmit="return false;">
                     <div>
                         <label class="bold" for="speak">Say A Phrase...</label>
                     </div>
-                    <input id="speak" name="speak" type="text"> <button id="speakButton">Speak!</button>
+                    <div class="flex column">
+                        <div class="flex row">
+                            <input id="speak" name="speak" type="text"> 
+                            <button class="wordButton" id="speakButton">Speak!</button>
+                        </div>
+                        <div class="flex row">
+                            <input id="speakUrl" name="speakUrl" type="text" readonly>
+                            <button target="speakUrl" class="wordButton copy">Copy</button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <hr>
-            <div class="contentTab flex" id="mainTab">
-            <!-- LOL? -->
+            <div>
                 <div>
-                    <div>
-                        <label class="bold" for="port">Port</label>
-                    </div>
-                    <input class="generalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                    <label class="bold" for="selectDropdown">Word Banks</label>
                 </div>
-                <div>
-                    <div>
-                        <label class="bold" for="delay">Punctuation Pause Duration</label>
-                    </div>
-                    <input class="generalSetting" id="delay" type="number" min="1" max="1000" value="500"> <span class="italic">milliseconds</span>
+                <div class="flex row">
+                    <select id="selectDropdown">
+
+                    </select>
+                    <button id="createButton" class="green">+</button>
+                    <button id="deleteButton" class="red">-</button>
                 </div>
             </div>
-            <!--  -->
-            <div class="contentTab flex" id="wordListTab">
-                <div>
+            <hr>
+            <div class="contentTab flex column" id="mainTab">
+                <div class="flex column">
                     <div>
-                        <label class="bold" for="wordDirectorySelect">Default</label>
-                    </div>    
-                    <button id="wordDirectorySelect">Select Word Directory</button> <span id="wordDirectoryDisplay" class="overflowHidden">...</span>
+                        <div class="flex row">
+                            <input class="bankSetting" id="name" type="text">
+                            <input id="uuid" type="text" readonly>
+                            <button target="uuid" class="wordButton copy">Copy</button>
+                        </div>
+                    </div>
+                    <!-- <div>
+                        <label class="bold" for="uuid">Bank ID</label>
+                        <div class="flex row">
+                            <input id="uuid" type="text" readonly>
+                            <button target="uuid" class="copy">Copy</button>
+                        </div>
+                    </div> -->
+                    <div>
+                        <div class="flex row">
+                            <button id="directorySelect" class="wordButton">Select File Folder</button> 
+                            <span id="path" class="italic">...</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div>
+                            <label class="bold" for="delay">Punctuation Pause Duration</label>
+                        </div>
+                        <div class="flex row">
+                            <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500"> 
+                            <span class="italic">milliseconds</span>
+                        </div>
+                    </div>
+                    <div class="flex column noGap">
+                        <div>
+                            <label class="bold" for="wordList">Word List</label> 
+                            <!-- <button id="wordRefresh">Refresh List</button> -->
+                        </div>
+                        <div class="flex scroll frame">
+                            <ul id="wordList">
+                            
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="bold" for="wordList">Word List</label> <button id="wordRefresh">Refresh List</button>
-                </div>
-                <ul id="wordList">
-                    <!-- Words go here -->
-                </ul>
             </div>
         </div>
+        <!-- <div id="saveIndicator" class="green"></div> -->
     </body>
     <script>
-        const DEFAULT_BANK = "Default";
-        document.getElementById("wordDirectorySelect").addEventListener('click', async () => {
-            const dir = await window.electronAPI.selectDirectory();
-            if(dir){
-                document.getElementById("wordDirectoryDisplay").innerHTML = dir;
-                console.log(dir);
-                const data = {
-                    name: DEFAULT_BANK,
-                    path: dir,
-                };
-                const response = await fetch("/save/bank", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data)
-                });
-                getWordListForBank(DEFAULT_BANK);
+
+        /**
+         * Takes a word over x characters and inserts a ... in the center.
+         * @param {string} word - The word to abridge.
+         * @param {number} maxLength - The maximum length to allow.
+         * @returns {string} The abridged word.
+         */
+        function abridgeWord(word, maxLength) {
+            const half = Math.floor((maxLength - 3) / 2)
+            if (word.length > maxLength) {
+            return word.substring(0, half) + '...' + word.substring(word.length-half, word.length);
             }
-        })
-        document.getElementById('source').value = `http://${window.location.host}/speaker`;
-        const speakInput = document.getElementById('speak');
-        document.getElementById('speakButton').addEventListener('click', async () => {
-            console.log(`Saying: ${speakInput.value}`);
-            const response = await fetch(`/speak?bank=${DEFAULT_BANK}&phrase=${speakInput.value}`, {
+            return word;
+        }
+
+        async function checkVersion(){
+            const response = await fetch(`/version`, {
                 method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
             });
+            const versionData = await response.json();
+            document.getElementById('currentVersion').innerHTML = `v${versionData.version}`
+            if(versionData.url){
+                document.getElementById('newVersion').classList.remove('hidden');
+                document.getElementById('newVersionLink').href = versionData.url;
+            }
+        }
+
+        document.getElementById('source').value = `http://${window.location.host}/speaker`;
+        const dropdown = document.getElementById('selectDropdown');
+        function getSelectedWordBank(){
+            return dropdown.options[dropdown.selectedIndex] ?? {};
+        }
+        dropdown.addEventListener('change', async () => {
+            await populateWordBankData();
+        });
+
+        document.getElementById('createButton').addEventListener('click', async () => {
+            const response = await fetch("/create/bank", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            await load();
+            dropdown.value = dropdown.options[dropdown.options.length - 1].value;
+            await populateWordBankData()
+        });
+
+        document.getElementById('deleteButton').addEventListener('click', async () => {
+            const data = {
+                uuid: getSelectedWordBank().value
+            };
+            const response = await fetch("/delete/bank", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data)
+            });
+            await load();
         });
 
         async function getWordListForBank(bank) {
@@ -99,46 +188,124 @@
                 list.append(li);
                 li.addEventListener('click', () => {
                     speakInput.value = `${speakInput.value} ${word}`.trim();
+                    var event = new Event('change')
+                    speakInput.dispatchEvent(event);
                 })
             }
         }
-        document.getElementById("wordRefresh").addEventListener('click', async () => {
-            getWordListForBank(DEFAULT_BANK);
-        })
-        getWordListForBank(DEFAULT_BANK);
 
-        async function load(){
-            const settings = await fetch(`/load`, {
+        async function populateWordBankData(){
+            console.log("Populating for word bank:" + getSelectedWordBank().value);
+            const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
                 method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
             });
-            const body = await settings.json()
-            for(const property in body){
-                console.log(`${property} : ${body[property]}`);
+            const bank = await response.json();
+            for(const property in bank){
+                // console.log(`${property} : ${bank[property]}`);
                 const elem = document.getElementById(property);
                 if(elem){
-                    elem.value = body[property];
+                    elem.value = bank[property];
                 }
             }
+            document.getElementById("path").innerHTML = bank.path ? abridgeWord(bank.path, 32) : "...";
+            await getWordListForBank(bank.uuid);
+            updateSpeakUrl();
         }
-        load();
-        for(const setting of document.getElementsByClassName('generalSetting')){
-            setting.addEventListener("change", async () => {
-                const data = {
-                    [setting.id] : setting.value
-                };
-                const response = await fetch("/save/general", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data)
-                });
-                if(setting.id === "port"){
-                    window.location.href = `http://localhost:${setting.value}/`
+
+
+        // document.getElementById("wordRefresh").addEventListener('click', async () => {
+        //     getWordListForBank(DEFAULT_BANK);
+        // });
+
+        async function load(){
+            const response = await fetch(`/load`, {
+                method: "GET",
+            });
+            const settings = await response.json()
+            for(const property in settings){
+                // console.log(`${property} : ${settings[property]}`);
+                const elem = document.getElementById(property);
+                if(elem){
+                    elem.value = settings[property];
                 }
-                load();
+            }
+            // prune deleted word banks
+            for(const option of document.getElementsByClassName("bankOption")){
+                if(!settings.banks.find(b => b.uuid === option.value)){
+                    option.remove();
+                }
+            }
+            // make/update existing word banks
+            for(const bank of settings.banks){
+                const existingOption = document.querySelector(`[value="${bank.uuid}"]`);
+                if(!existingOption){
+                    // create new HTML element using the name/UUID/path found here
+                    const option = document.createElement("option");
+                    option.classList.add("bankOption")
+                    option.value = bank.uuid;
+                    option.innerHTML = bank.name;
+                    dropdown.append(option);
+                }else{
+                    // update the display name of an existing element
+                    existingOption.innerHTML = bank.name;
+                }
+            }
+            await populateWordBankData();
+        }
+        
+        async function saveGlobalSetting(key, value){
+            const data = {
+                [key] : value
+            };
+            const response = await fetch("/save/global", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data)
+            });
+            if(key === "port"){
+                window.location.href = `http://localhost:${value}/`
+            }
+            await load();
+        }
+        
+        for(const setting of document.getElementsByClassName('globalSetting')){
+            setting.addEventListener("change", async () => {
+                await saveGlobalSetting(setting.id, setting.value);
             });
         }
+
+        async function saveBankSetting(key, value){
+            const data = {
+                uuid: getSelectedWordBank().value,
+                [key]: value,
+            };
+            const response = await fetch("/save/bank", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data)
+            });
+            await load();
+        }
+
+        for(const setting of document.getElementsByClassName('bankSetting')){
+            setting.addEventListener("change", async () => {
+                await saveBankSetting(setting.id, setting.value);
+            });
+        }
+
+        document.getElementById("directorySelect").addEventListener('click', async () => {
+            const dir = await window.electronAPI.selectDirectory();
+            if(dir){
+                await saveBankSetting('path', dir);
+            }
+        })
 
         function openTab(tabName){
             const tabs = document.getElementsByClassName('contentTab');
@@ -156,6 +323,35 @@
                 openTab(button.getAttribute('target'));
             });
         }
+
+        for(const button of document.getElementsByClassName('copy')){
+            button.addEventListener("click", async () => {
+                const target = document.getElementById(button.getAttribute("target"));
+                target.select();
+                navigator.clipboard.writeText(
+                    target.value
+                );
+            })
+        }
+
+        const speakInput = document.getElementById('speak');
+        function updateSpeakUrl(){
+            document.getElementById("speakUrl").value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`;
+        }
+
+        speakInput.addEventListener('change', async () => {
+            updateSpeakUrl();
+        })
+
+        document.getElementById('speakButton').addEventListener('click', async () => {
+            console.log(`Saying: ${speakInput.value}`);
+            const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`, {
+                method: "GET",
+            });
+        });
+
+        load();
         openTab('mainTab');
+        checkVersion();
     </script>
 </html>
