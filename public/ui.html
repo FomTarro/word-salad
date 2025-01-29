@@ -76,15 +76,11 @@
         });
 
         document.getElementById('createButton').addEventListener('click', async () => {
-            const data = {
-                name: "New Bank",
-            };
-            const response = await fetch("/save/bank", {
+            const response = await fetch("/create/bank", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data)
+                }
             });
             load();
         });

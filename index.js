@@ -20,6 +20,7 @@ const bankMap = new Map();
  * @property {string} uuid
  * @property {string} name
  * @property {string} path
+ * @property {number} delay
  * @property {Map<string, string[]} words
  */
 
@@ -88,6 +89,8 @@ async function loadGlobalSettings() {
  * @param {string} uuid - The UUID of the bank. If blank, one will be generated.
  */
 function createWordBank(name, dir, uuid){
+    // TODO, make this just take in a WordBank object, 
+    // returning a new instance based on properties from the source
     uuid = uuid ?? v4();
     console.log(`Creating word bank '${name}' from path: ${dir} with UUID ${uuid}`)
     const dict = dir ? parseDictionary(dir) : new Map();
@@ -245,7 +248,7 @@ async function launchBackend() {
         return;
     });
 
-    expressServer.post(['/save/global',], async (req, res) => {
+    expressServer.post(['/save/global'], async (req, res) => {
         if(req.body){
             save(req.body);
             if(req.body.port){
@@ -266,9 +269,8 @@ async function launchBackend() {
         }
     });
 
-    expressServer.post(['/save/bank',], async (req, res) => {
-        if(req.body){
-            if(req.body.uuid){
+    expressServer.post(['/save/bank'], async (req, res) => {
+        if(req.body && req.body.uuid){
                 const bank = bankMap.get(req.body.uuid)
                 if(bank){
                     bankMap.set(req.body.uuid, merge(bank, req.body));
@@ -279,11 +281,6 @@ async function launchBackend() {
                     res.status(400).send();
                     return;
                 }
-            }else{
-                createWordBank("New Word Bank");
-                save(settings);
-                res.status(200).send();
-            }
         }else{
             res.status(400).send();
             return;
@@ -303,18 +300,27 @@ async function launchBackend() {
     });
 
     expressServer.post(['/create/bank',], async (req, res) => {
-        if(req.body && req.body.uuid){
-            bankMap.delete(req.body.uuid);
-            res.status(200).send();
-            return;
-        }else{
-            res.status(400).send();
-            return;
-        }
+        createWordBank("New Word Bank");
+        save(settings);
+        res.status(200).send();
+        return;
     });
 
     expressServer.get(['/load',], async (req, res) => {
         res.status(200).send(settings);
+        return;
+    });
+
+    // get bank data
+    expressServer.get(['/banks/:bank',], async (req, res) => {
+        if(req.params && req.params.bank){
+            const bank = getWordBankByName(req.params.bank)
+            if(bank){
+                res.status(200).send(bank);
+                return;
+            }
+        }
+        res.status(400).send([]);
         return;
     });
 
@@ -332,7 +338,6 @@ async function launchBackend() {
         }
         res.status(400).send([]);
         return;
-
     });
 
     // get specific word file
@@ -355,7 +360,7 @@ async function launchBackend() {
             console.log(`Attempting to say: ${req.query.phrase}`);
             const bank = getWordBankByName(req.query.bank);
             if(bank){
-                const commands = formSentence(req.query.phrase, bank.words);
+                const commands = formSentence(req.query.phrase, bank.words, bank.delay);
                 sendToWsClients({ 
                     bank: bank.name,
                     commands: commands 
