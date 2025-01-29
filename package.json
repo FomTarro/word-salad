@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "npx electron-builder build",
-    "test": "test"
+    "test": "jest --coverage --collectCoverageFrom=src/**/*.{js,jsx}",
+    "test-leaks": "jest --runInBand --detectOpenHandles",
+    "check-push": "lint-staged && npm run test"
   },
   "repository": {
     "type": "git",
@@ -32,7 +34,10 @@
   },
   "devDependencies": {
     "electron": "34.0.1",
-    "electron-builder": "24.6.3"
+    "electron-builder": "^24.13.3",
+    "husky": "^3.1.0",
+    "jest": "^29.7.0",
+    "prettier": "2.8.8"
   },
   "build": {
     "appId": "word-salad.skeletom.net",
@@ -42,5 +47,17 @@
         "portable"
       ]
     }
+  },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run check-push",
+      "post-merge": "npm install"
+    }
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "lint-staged": {
+    "*.{js,ts,css,scss,md}": "prettier --write"
   }
 }

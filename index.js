@@ -8,6 +8,7 @@ const markdownit = require('markdown-it');
 const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
 const { version } = require('./package.json');
 const { MenuTemplate } = require('./src/js/menu');
+const { isOlderThan, merge } = require('./src/js/utils');
 require('dotenv').config();
 
 const SRC_DIR = path.join(__dirname, './src');
@@ -34,24 +35,6 @@ let settings = {
     port: 8095,
     /** @type {WordBank[]} */
     banks: []
-}
-
-/** For each property of object A, if object B has a value for that property, apply it to Object A.
- * Returns a new instance/clone of A with the new values.
- * @param {object} a 
- * @param {object} b 
- * @returns {object} - A new instance of A with all properties merged in.
- */
-function merge(a, b){
-    var c = {}
-    for(var prop in a){
-        if(b && b[prop]){
-            c[prop] = b[prop]
-        }else{
-            c[prop] = a[prop]
-        }
-    }
-    return c;
 }
 
 function save(data) {
@@ -271,23 +254,13 @@ async function launchBackend() {
         return;
     });
 
-    /**
-     * Checks to see if Version A is older than Version B. 
-     * @param {string} versionA formatted as x.x.x
-     * @param {string} versionB formatted as x.x.x
-     * @returns True if Version A is older than Version B. False otherwise.
-     */
-    function isOlderThan(versionA, versionB) {
-		return versionA == undefined || versionA.length <= 0 || (versionB != undefined && versionA.localeCompare(versionB) < 0);
-	}
-
     expressServer.get(['/version',], async (req, res) => {
         let url = undefined;
         const newVersion = await fetch('https://www.skeletom.net/word-salad/version', {
             method: "GET",
         });
         if(newVersion.status >= 200 && newVersion.status < 400){
-            parsed = await newVersion.json();
+            const parsed = await newVersion.json();
             if(isOlderThan(VERSION, parsed.version)){
                 url = parsed.url;
             }
