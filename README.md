@@ -31,7 +31,7 @@ If you're looking for a good jumping-off point, I found the [Wikipeda List of th
 The application has two components: the UI (hereafter called the Server) and the Speaker. Once you have populated your word bank folder as outlined in the previous section, you can make the application speak by following these steps:
 1. Add the Speaker as a Browser Source to your OBS Scene with the URL `http://localhost:8095/speaker`. Be sure to check the box allowing OBS to control the Audio of this source!
     - **Important note!** `8095` is the default port. If you change the Port Number in your Settings, be sure to update the URLs of your Browser Sources.
-2. Issue a speak command to the Server by sending a `GET` request to `http://localhost:8095/speak?bank=Default&phrase=your sentence here`. 
+2. Issue a speak command to the Server by sending a `GET` request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=<your sentence here>`. 
     - You can hit this URL in any browser to issue the command.
 
 ## Setting Up Twitch Redeems
@@ -39,5 +39,5 @@ The current version of "Word Salad" doesn't actually feature any direct Twitch i
 
 1. Create a Channel Point Redeem via the [Twitch Dashboard](dashboard.twitch.tv).
     - Make sure to check the `Require Viewer to Enter Text` box.
-2. In MixItUp, edit the new Channel Point redeem by adding an action that issues a Web Request to `http://localhost:8095/speak?bank=Default&phrase=$message`.
+2. In MixItUp, edit the new Channel Point redeem by adding an action that issues a Web Request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=$message`.
     - The `$message` variable in MixItUp passes the content of the redeem's text to the Web Request.
