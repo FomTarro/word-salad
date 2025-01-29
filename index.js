@@ -4,16 +4,19 @@ const WebSocket = require('ws');
 const { v4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const { app, dialog, BrowserWindow, ipcMain } = require('electron');
+const markdownit = require('markdown-it');
+const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
+const { version } = require('./package.json');
+const { MenuTemplate } = require('./src/js/menu');
 require('dotenv').config();
 
-const srcDirectory = path.join(__dirname, './src');
-const publicDirectory = path.join(__dirname, './public');
-const siblingDirectory = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
-
+const SRC_DIR = path.join(__dirname, './src');
+const PUB_DIR = path.join(__dirname, './public');
+const SIB_DIR = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
+const VERSION = version ?? '0.0.0';
 // indexed by UUID
 /** @type {Map<string, WordBank>} */
-const bankMap = new Map();
+const BANK_MAP = new Map();
 
 /**
  * @typedef {Object} WordBank
@@ -24,10 +27,10 @@ const bankMap = new Map();
  * @property {Map<string, string[]} words
  */
 
-const settingsFilePath = path.join(siblingDirectory ,`settings.json`);
+const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
 let settings = {
-    tempPath: srcDirectory,
-    settingsPath: settingsFilePath,
+    tempPath: SRC_DIR,
+    settingsPath: SETTINGS_FILE_PATH,
     port: 8095,
     /** @type {WordBank[]} */
     banks: []
@@ -54,7 +57,7 @@ function merge(a, b){
 function save(data) {
     console.log("Saving...");
     settings = merge(settings, data)
-    settings.banks = [...[...bankMap.values()].map(val =>  { 
+    settings.banks = [...[...BANK_MAP.values()].map(val =>  { 
         return {
             uuid: val.uuid,
             name: val.name,
@@ -63,12 +66,12 @@ function save(data) {
         }
     })];
     console.log(settings);
-    fs.writeFileSync(settingsFilePath, JSON.stringify(settings));
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings));
 }
 
 async function loadGlobalSettings() {
     console.log("Loading...");
-    const data = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath).toString()) : {};
+    const data = fs.existsSync(SETTINGS_FILE_PATH) ? JSON.parse(fs.readFileSync(SETTINGS_FILE_PATH).toString()) : {};
     settings = merge(settings, data);
     const banks = [...settings.banks]
     if(banks.length <= 0){
@@ -93,14 +96,14 @@ function createWordBank(bankData){
     console.log(`Creating word bank '${data.name}' from path: ${data.path} with UUID ${data.uuid}`)
     const dict = data.path ? parseDictionary(data.path) : new Map();
     console.log(`Bank has ${dict.size} words.`);
-    bankMap.set(uuid, {
+    BANK_MAP.set(uuid, {
         uuid: uuid,
         name: name,
         path: data.path,
         delay: delay,
         words: dict
     });
-    return bankMap.get(uuid);
+    return BANK_MAP.get(uuid);
 }
 
 /**
@@ -109,7 +112,7 @@ function createWordBank(bankData){
  * @returns {WordBank} - Found bank. Undefined if no such bank exists.
  */
 function getWordBankByUuid(uuid){
-    return bankMap.get(uuid);
+    return BANK_MAP.get(uuid);
 }
 
 /**
@@ -157,7 +160,7 @@ function parseDictionary(dir) {
             dict.set(split[0], [word]);
         }
     }
-    console.log(dict);
+    // console.log(dict);
     return dict;
 }
 
@@ -207,7 +210,7 @@ async function launchBackend() {
     await loadGlobalSettings();
     const expressServer = express();
     expressServer.use(express.json());
-    expressServer.use('/', express.static(publicDirectory));
+    expressServer.use('/', express.static(PUB_DIR));
     expressServer.set('trust proxy', true);
 
     // Makes an http server out of the express server
@@ -215,7 +218,7 @@ async function launchBackend() {
     // Starts the http server
     const server = httpServer.listen(settings.port, () => {
         // code to execute when the server successfully starts
-        console.log(`started on ${settings.port}`);
+        console.log(`App version: ${VERSION} started on ${settings.port}`);
     });
 
     // Websocket API
@@ -238,12 +241,48 @@ async function launchBackend() {
 
     // Express Webserver API
     expressServer.get(['/',], async (req, res) => {
-        res.status(200).sendFile(path.join(publicDirectory, 'ui.html'));
+        res.status(200).sendFile(path.join(PUB_DIR, 'ui.html'));
         return;
     });
 
     expressServer.get(['/source', '/player', '/speaker'], async (req, res) => {
-        res.status(200).sendFile(path.join(publicDirectory, 'speaker.html'));
+        res.status(200).sendFile(path.join(PUB_DIR, 'speaker.html'));
+        return;
+    });
+
+    expressServer.get(['/readme'], async (req, res) => {
+        const readme = fs.readFileSync(path.join(PUB_DIR, "..", "README.md")).toString();
+        const md = markdownit()
+        res.setHeader("Content-Type", "text/html");
+        res.status(200).send(
+            `<html>
+                <style>
+                    html {
+                        background-color: gainsboro;
+                    }
+                    code {
+                        background-color: whitesmoke;
+                        padding: 2px;
+                        border-radius: 5px;
+                    }
+                </style>
+                ${md.render(readme)}
+            </html>`);
+        return;
+    });
+
+    expressServer.get(['/version',], async (req, res) => {
+        let url = undefined;
+        const newVersion = await fetch('https://www.skeletom.net/word-salad/version', {
+            method: "GET",
+        });
+        if(newVersion.status >= 200 && newVersion.status < 400){
+            parsed = await newVersion.json();
+        }
+        res.status(200).send({
+            version: VERSION,
+            url: url
+        });
         return;
     });
 
@@ -270,9 +309,9 @@ async function launchBackend() {
 
     expressServer.post(['/save/bank'], async (req, res) => {
         if(req.body && req.body.uuid){
-                const bank = bankMap.get(req.body.uuid)
+                const bank = BANK_MAP.get(req.body.uuid)
                 if(bank){
-                    bankMap.set(req.body.uuid, merge(bank, req.body));
+                    BANK_MAP.set(req.body.uuid, merge(bank, req.body));
                     save(settings);
                     res.status(200).send();
                     return;
@@ -288,7 +327,7 @@ async function launchBackend() {
 
     expressServer.post(['/delete/bank',], async (req, res) => {
         if(req.body && req.body.uuid){
-            bankMap.delete(req.body.uuid);
+            BANK_MAP.delete(req.body.uuid);
             save(settings);
             res.status(200).send();
             return;
@@ -314,7 +353,7 @@ async function launchBackend() {
     expressServer.get(['/banks/:uuid',], async (req, res) => {
         if(req.params && req.params.uuid){
             const bank = getWordBankByUuid(req.params.uuid)
-            console.log(bank);
+            // console.log(bank);
             if(bank){
                 res.status(200).send(bank);
                 return;
@@ -383,7 +422,7 @@ async function launchFrontend(){
         ipcMain.on('selectDirectory', async (event) => {
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
             if(!dir.canceled && dir.filePaths.length > 0){
-                console.log(dir);
+                // console.log(dir);
                 event.returnValue = dir.filePaths[0];
             }else{
                 event.returnValue = undefined;
@@ -391,11 +430,22 @@ async function launchFrontend(){
         });
         const win = new BrowserWindow({
             width: 400,
-            height: 600,
+            height: 640,
             webPreferences: {
-              preload: path.join(srcDirectory, 'js', 'bridge.js')
+              preload: path.join(SRC_DIR, 'js', 'bridge.js')
             }
         })
+        win.webContents.setWindowOpenHandler(({ url }) => {
+            // if(url.startsWith('http://localhost')){
+            //     return { action: 'allow' }
+            // }
+            shell.openExternal(url);
+            return { action: 'deny' };
+        });
+        const menu = Menu.buildFromTemplate(MenuTemplate(() => {
+            return settings.port;
+        }));
+        Menu.setApplicationMenu(menu)
         win.loadURL(`http://localhost:${settings.port}/`)
         // win.webContents.send('load-settings', {
         //     port: port

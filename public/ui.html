@@ -3,7 +3,12 @@
     <link rel="stylesheet" type="text/css" href='/css/style.css'>
     <body class="flex column">
         <div>
-            <label class="bold">Word Salad v0.1</label> - <span>New version available!</span>
+            <div>
+                <label class="bold">Word Salad <span id="currentVersion">v1.0.0</span></label><span id="newVersion" class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span> 
+            </div>
+            <div>
+                <a href="/readme" target="_blank">Setup Guide</a>
+            </div>
         </div>
         <hr>
         <div class="flex column">
@@ -120,6 +125,21 @@
             return word;
         }
 
+        async function checkVersion(){
+            const response = await fetch(`/version`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            const versionData = await response.json();
+            document.getElementById('currentVersion').innerHTML = `v${versionData.version}`
+            if(versionData.url){
+                document.getElementById('newVersion').classList.remove('hidden');
+                document.getElementById('newVersionLink').href = versionData.url;
+            }
+        }
+
         document.getElementById('source').value = `http://${window.location.host}/speaker`;
         const dropdown = document.getElementById('selectDropdown');
         function getSelectedWordBank(){
@@ -168,6 +188,8 @@
                 list.append(li);
                 li.addEventListener('click', () => {
                     speakInput.value = `${speakInput.value} ${word}`.trim();
+                    var event = new Event('change')
+                    speakInput.dispatchEvent(event);
                 })
             }
         }
@@ -189,8 +211,8 @@
                 }
             }
             document.getElementById("path").innerHTML = bank.path ? abridgeWord(bank.path, 32) : "...";
-            document.getElementById("speakUrl").value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`;
-            getWordListForBank(bank.uuid);
+            await getWordListForBank(bank.uuid);
+            updateSpeakUrl();
         }
 
 
@@ -238,7 +260,7 @@
             const data = {
                 [key] : value
             };
-            const response = await fetch("/save/general", {
+            const response = await fetch("/save/global", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -313,6 +335,14 @@
         }
 
         const speakInput = document.getElementById('speak');
+        function updateSpeakUrl(){
+            document.getElementById("speakUrl").value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`;
+        }
+
+        speakInput.addEventListener('change', async () => {
+            updateSpeakUrl();
+        })
+
         document.getElementById('speakButton').addEventListener('click', async () => {
             console.log(`Saying: ${speakInput.value}`);
             const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`, {
@@ -322,5 +352,6 @@
 
         load();
         openTab('mainTab');
+        checkVersion();
     </script>
 </html>
