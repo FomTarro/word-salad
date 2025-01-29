@@ -1,5 +1,7 @@
 html {
     height: 100%;
+    background-color: gainsboro;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
 }
 body {
     overflow: hidden;
@@ -20,11 +22,19 @@ ul {
 select {
     width: auto;
     flex: 1;
-    max-width: 177px;
+    /* max-width: 177px;
     padding-block: 1px;
     padding-inline: 2px;
-    height: 21px;
+    height: 21px; */
     display: inline-block;
+}
+
+button, input, select{
+    padding: 0.5em;
+    border-radius: 0.75rem;
+    border: 2px solid dimgray;
+    max-width: 60%;
+    min-height: 1em;
 }
 
 .flex {
@@ -50,6 +60,7 @@ select {
 
 .bold {
     font-weight: bold;
+    font-size: 1.2em;
 }
 
 .italic {
