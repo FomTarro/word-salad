@@ -1,11 +1,11 @@
 {
   "name": "word-salad",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Text-to-speech processor that uses sentence mixing instead of synthesis.",
   "main": "index.js",
   "scripts": {
     "start": "electron .",
-    "build": "npx electron-builder build",
+    "build": "npm install && npx electron-builder build",
     "test": "jest --coverage --collectCoverageFrom=src/**/*.{js,jsx}",
     "test-leaks": "jest --runInBand --detectOpenHandles",
     "check-push": "npm run test"

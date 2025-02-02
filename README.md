@@ -1,10 +1,10 @@
 # Word Salad v0.1.0
 
 ## The What
-"Word Salad" is a **text-to-speech application** with a **twist**: instead of using speech synthesis, it instead uses **sentence mixing**. By providing pre-recorded words as individual files, "Word Salad" is able to assemble sentences to play back as audio. Perfect for Twitch redeems and the like! 
+"*Word Salad*" is a **text-to-speech application** with a **twist**: rather than using speech synthesis, it instead uses **sentence mixing**. By providing pre-recorded words as individual files, "*Word Salad*" is able to assemble sentences to play back as audio. Perfect for Twitch redeems and the like! 
 
 ## The Why
-Text-to-speech is a common redeem that I see on many channels. However, I feel that the open-ended nature encourages chatters to say whatever intrusive thought crosses their mind, with little concern for length or disruption. By restricting the pool of available words, "Word Salad" presents the chatter with a fun puzzle. Thus, to say anything coherent at all feels like a small victory, and figuring out how to convey your desired sentiment requires critical thinking. It's good exercise for the mind and soul.
+Text-to-speech is a common redeem that I see on many channels. However, I feel that the open-ended nature encourages chatters to say whatever intrusive thought crosses their mind, with little concern for length or disruption. By restricting the pool of available words, "*Word Salad*" presents the chatter with a fun puzzle. Thus, to say anything coherent at all feels like a small victory, and figuring out how to convey your desired sentiment requires critical thinking. It's good exercise for the mind and soul.
 
 ## The How
 This application is powered by Node.js in an Electron shell for the frontend.
@@ -32,27 +32,30 @@ Obviously, I can't ship this application pre-filled with audio that I don't own,
     - Subfolders within main folder folder are allowed.
 3. Click the *"Select File Folder"* button to navigate to the folder where your audio files are stored. This should automatically populate your Word List.
 
-If you're looking for a good jumping-off point, I found the [Wikipeda List of the 100 most common words in the English Language](https://en.wikipedia.org/wiki/Most_common_words_in_English) to be a useful guide in determining which words were most important to find and add to the Word Bank from my chosen source.
+As a quick example, you can download all of the Half-Life 1 VOX word files [from here](https://github.com/sourcesounds/hl1/tree/72e4b6b36d38cb5703a6b5ed3ffdc7b72bc2fd2f/sound/vox), or from the game install if you own the game itself. These files are even already named in the correct format, which is very convenient!
+
+
+If you're looking for a good jumping-off point for choosing your own words from your own source, I found the [Wikipeda List of the 100 most common words in the English Language](https://en.wikipedia.org/wiki/Most_common_words_in_English) to be a useful guide in determining which words were most important to find and add to the Word Bank from my chosen source.
 
 ## Making It Speak
 The application has two components: the Main App and the Browser Source. Once you have populated your Word Bank folder as outlined in the previous section, you can make the application speak by following these steps:
 1. Add the speaker as a Browser Source to your OBS Scene with the URL `http://localhost:8095/speaker`. Be sure to check the box allowing OBS to control the Audio of this source!
     - **Important note!** `8095` is the default port. If you change the Port Number in your Settings, be sure to update the URLs of your Browser Sources.
     - If you start OBS before starting this application in the future, you may need to refresh your Browser Source. Without the Main App running first, the Browser Source can't be served.
-    - It is recommended to go into "*Advanced Audio Settings*" and enable "Monitor and Output" for this Browser Soruce's audio in OBS.
+    - It is recommended to go into "*Advanced Audio Settings*" and enable "*Monitor and Output*" for this Browser Soruce's audio in OBS.
 2. Issue a speak command to the Main App by sending a `GET` request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=<your sentence here>`. 
     - For example, with a Word Bank with Bank ID `5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7` and the desired phrase `You dense Diglett!`, your request would be `http://localhost:8095/speak?bank=5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7&phrase=You dense Diglett!`
     - You can hit this URL in any browser to issue the command, or use the Main App's UI.
 3. If you had Audio Monitor enabled, you should have heard the phrase play, provided that the words you wanted to say exist in your Word Bank!
 
 ## Setting Up Twitch Redeems
-The current version of "Word Salad" doesn't actually feature any direct Twitch integration at all! Instead, you can use it in tandem with a Channel Manager like [MixItUp](https://mixitupapp.com/) by following these steps:
+The current version of "*Word Salad*" doesn't actually feature any direct Twitch integration at all! Instead, you can use it in tandem with a Channel Manager like [MixItUp](https://mixitupapp.com/) by following these steps:
 
 1. Create a Channel Point Redeem via the [Twitch Dashboard](dashboard.twitch.tv).
     - Make sure to check the "*Require Viewer to Enter Text*" box.
 2. In MixItUp, edit the new Channel Point redeem by adding an action that issues a Web Request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=$message`.
     - The [`$message`](https://wiki.mixitupapp.com/en/commands/event-commands#twitch-channel-points-redeemed) variable in MixItUp passes the content of the redeem's text to the Web Request.
-3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
+3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`, or by clicking the "*Copy*" button next to your Word List on the UI. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
 
 You can set up different redeems for different Word Banks by repeating the above steps with different Bank IDs!
 

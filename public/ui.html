@@ -93,10 +93,13 @@
                             <span class="italic">milliseconds</span>
                         </div>
                     </div>
-                    <div class="flex column noGap">
+                    <div class="flex column">
                         <div>
-                            <label class="bold" for="wordList">Word List</label> 
-                            <!-- <button id="wordRefresh">Refresh List</button> -->
+                            <span><label class="bold" for="wordList">Word List</label> - <span id="wordCount" class="italic"></span></span>
+                            <div class="flex row"> 
+                                <button id="wordRefresh" class="wordButton">Refresh</button>
+                                <button id="wordCopy" class="wordButton">Copy</button>
+                            </div>
                         </div>
                         <div class="flex scroll frame">
                             <ul id="wordList">
@@ -192,6 +195,7 @@
                     speakInput.dispatchEvent(event);
                 })
             }
+            document.getElementById("wordCount").innerHTML = `(${body.length} words total)`;
         }
 
         async function populateWordBankData(){
@@ -216,9 +220,24 @@
         }
 
 
-        // document.getElementById("wordRefresh").addEventListener('click', async () => {
-        //     getWordListForBank(DEFAULT_BANK);
-        // });
+        document.getElementById("wordRefresh").addEventListener('click', async () => {
+            getWordListForBank(getSelectedWordBank().value);
+        });
+
+        document.getElementById("wordCopy").addEventListener('click', async () => {
+            const response = await fetch(`/banks/${getSelectedWordBank().value}/words`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            const bank = await response.json();
+            navigator.clipboard.writeText(
+                JSON.stringify(bank, null, 2)
+            );
+        });
+        
+        
 
         async function load(){
             const response = await fetch(`/load`, {
