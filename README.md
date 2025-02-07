@@ -57,7 +57,7 @@ The current version of "*Word Salad*" doesn't actually feature any direct Twitch
     - Make sure to check the "*Require Viewer to Enter Text*" box.
 2. In MixItUp, edit the new Channel Point redeem by adding an action that issues a Web Request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=$message`.
     - The [`$message`](https://wiki.mixitupapp.com/en/commands/event-commands#twitch-channel-points-redeemed) variable in MixItUp passes the content of the redeem's text to the Web Request.
-3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`, or by clicking the "*Copy*" button next to your Word List on the UI. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
+3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`, or by clicking the "*Copy*" button next to your Word List on the Man App's UI. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
 
 You can set up different redeems for different Word Banks by repeating the above steps with different Bank IDs!
 
