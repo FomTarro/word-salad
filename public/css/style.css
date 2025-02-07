@@ -36,13 +36,13 @@ li::marker{
     display: none;
 }
 
-li:nth-child(even){
+li:nth-child(even of :not(.hidden)){
     background-color: white;
 }
 
 button:hover, li:hover{
     color: salmon;
-    background-color: khaki;
+    background-color: khaki !important;
 }
 
 select {

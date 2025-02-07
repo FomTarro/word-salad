@@ -1,0 +1,17 @@
+html {
+    background-color: gainsboro;
+    line-height: 1.2rem;
+}
+code {
+    background-color: whitesmoke;
+    padding: 2px;
+    border-radius: 5px;
+}
+li {
+    padding-bottom: 0.5rem;
+}
+
+li::marker {
+    font-weight: bold;
+    font-size: 1.2rem;
+}

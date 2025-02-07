@@ -99,6 +99,7 @@
                             <div class="flex row"> 
                                 <button id="wordRefresh" class="wordButton">Refresh</button>
                                 <button id="wordCopy" class="wordButton">Copy</button>
+                                <input class='italic' id="wordFilter" type="text" placeholder="Search word list..."> 
                             </div>
                         </div>
                         <div class="flex scroll frame">
@@ -236,6 +237,17 @@
                 JSON.stringify(bank, null, 2)
             );
         });
+
+        document.getElementById("wordFilter").addEventListener('change', async () => {
+            const list = document.getElementById("wordList");
+            for(const li of list.querySelectorAll('li')){
+                if(li.innerHTML.includes(document.getElementById("wordFilter").value)){
+                    li.classList.remove("hidden");
+                }else{
+                    li.classList.add("hidden");
+                }
+            }
+        })
         
         
 

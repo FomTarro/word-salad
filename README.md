@@ -1,4 +1,4 @@
-# Word Salad v0.1.0
+# Word Salad v1.1.0
 
 ## The What
 "*Word Salad*" is a **text-to-speech application** with a **twist**: rather than using speech synthesis, it instead uses **sentence mixing**. By providing pre-recorded words as individual files, "*Word Salad*" is able to assemble sentences to play back as audio. Perfect for Twitch redeems and the like! 
@@ -27,10 +27,12 @@ Obviously, I can't ship this application pre-filled with audio that I don't own,
 2. Select your new Word Bank from the dropdown if it isn't already. 
     - **Important note!** Observe that your bank has a display name, and also Bank ID. This ID will be formatted like `5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7`. You will need this ID later when making Speak commands.
     - You can rename your Word Bank at any time, but the ID will remain constant.
-2. Create a folder and populate it with audio files. 
-    - File names must be formatted as `word_number.wav`. The filename informs the application what each word is. For example, `the_02.wav` represents a variant of the word `the`. 
+3. Create a folder and populate it with audio files. 
+    - Accepted file formats are `.wav`, `.mp3` and `.mp4`.
+    - File names must be formatted as `word_number.wav`. The filename informs the application what each word is. For example, `the_02.wav` represents a variant of the word *"the"*. 
+    - **Optional!** You can designate sounds to play for words that are not present in the bank by simply naming the sound file `_`. For example, `_.wav` and `_1.wav` could be *"Umm"* and *"hmm"*. If these files are not present either, the player will simply skip over unrecognized words. 
     - Subfolders within main folder folder are allowed.
-3. Click the *"Select File Folder"* button to navigate to the folder where your audio files are stored. This should automatically populate your Word List.
+4. Click the *"Select File Folder"* button to navigate to the folder where your audio files are stored. This should automatically populate your Word List.
 
 As a quick example, you can download all of the Half-Life 1 VOX word files [from here](https://github.com/sourcesounds/hl1/tree/72e4b6b36d38cb5703a6b5ed3ffdc7b72bc2fd2f/sound/vox), or from the game install if you own the game itself. These files are even already named in the correct format, which is very convenient!
 

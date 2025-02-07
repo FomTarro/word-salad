@@ -18,6 +18,8 @@ const VERSION = version ?? '0.0.0';
 // indexed by UUID
 /** @type {Map<string, WordBank>} */
 const BANK_MAP = new Map();
+const UNKNOWN_WORD = '_';
+const NEW_BANK = 'New Word Bank'
 
 /**
  * @typedef {Object} WordBank
@@ -74,7 +76,7 @@ async function loadGlobalSettings() {
 function createWordBank(bankData){
     const data = bankData ?? {};
     const uuid = data.uuid ?? v4();
-    const name = data.name ?? "New Word Bank";
+    const name = data.name ?? NEW_BANK;
     const delay = data.delay ?? 500;
     console.log(`Creating word bank '${data.name}' from path: ${data.path} with UUID ${data.uuid}`)
     const dict = data.path ? parseDictionary(data.path) : new Map();
@@ -137,10 +139,11 @@ function parseDictionary(dir) {
     for(const word of filteredWords){
         const parse = path.parse(word);
         const split = parse.name.split('_');
-        if(dict.has(split[0])){
-            dict.get(split[0]).push(word);
+        const key = split[0].length > 0 ? split[0] : UNKNOWN_WORD;
+        if(dict.has(key)){
+            dict.get(key).push(word);
         }else{
-            dict.set(split[0], [word]);
+            dict.set(key, [word]);
         }
     }
     // console.log(dict);
@@ -174,10 +177,14 @@ function formSentence(phrase, delay, dictionary){
     console.log(split);
     const commands = []
     for(const word of split){
-        if(word.isWordLike){
+        if(word.isWordLike || word.segment === UNKNOWN_WORD){
             if(dictionary.has(word.segment)){
                 commands.push({
                     path: dictionary.get(word.segment)[Math.floor(Math.random() * dictionary.get(word.segment).length)]
+                })
+            }else if(dictionary.has(UNKNOWN_WORD)){
+                commands.push({
+                    path: dictionary.get(UNKNOWN_WORD)[Math.floor(Math.random() * dictionary.get(UNKNOWN_WORD).length)]
                 })
             }
         }else{
@@ -239,16 +246,7 @@ async function launchBackend() {
         res.setHeader("Content-Type", "text/html");
         res.status(200).send(
             `<html>
-                <style>
-                    html {
-                        background-color: gainsboro;
-                    }
-                    code {
-                        background-color: whitesmoke;
-                        padding: 2px;
-                        border-radius: 5px;
-                    }
-                </style>
+                <link rel="stylesheet" type="text/css" href='/css/readme.css'>
                 ${md.render(readme)}
             </html>`);
         return;
