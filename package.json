@@ -26,7 +26,6 @@
   },
   "homepage": "https://github.com/FomTarro/word-salad#readme",
   "dependencies": {
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "markdown-it": "^14.1.0",
     "uuid": "^11.0.5",
@@ -45,7 +44,11 @@
       "target": [
         "portable"
       ]
-    }
+    },
+    "files": [
+      "**/*",
+      "!test/*"
+    ]
   },
   "husky": {
     "hooks": {

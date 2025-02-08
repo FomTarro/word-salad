@@ -1,6 +1,10 @@
 const { app, Menu, shell } = require('electron')
 
 const isMac = process.platform === 'darwin'
+/**
+ * @param {*} getPort 
+ * @returns {Menu}
+ */
 const template = (getPort) => [
     // { role: 'appMenu' }
     ...(isMac
@@ -92,6 +96,7 @@ const template = (getPort) => [
     // },
     {
         role: 'help',
+        label: 'Help',
         submenu: [
             {
                 label: 'Setup Guide',

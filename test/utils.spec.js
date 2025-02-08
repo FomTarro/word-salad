@@ -1,4 +1,4 @@
-const { isOlderThan, merge } = require("./utils");
+const { isOlderThan, merge } = require("../src/js/utils");
 
 describe("Verison Comparison Tests", () => {
     test("Version Comparison 1", async() => {
