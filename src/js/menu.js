@@ -1,11 +1,12 @@
-const { app, Menu, shell } = require('electron')
+const { app, Menu} = require('electron')
 
 const isMac = process.platform === 'darwin'
 /**
+ * @param {Electron.Shell} shell 
  * @param {*} getPort 
  * @returns {Menu}
  */
-const template = (getPort) => [
+const template = (shell, getPort) => [
     // { role: 'appMenu' }
     ...(isMac
         ? [{
@@ -120,4 +121,4 @@ const template = (getPort) => [
     }
 ]
 
-module.exports.MenuTemplate = template;
+module.exports.menuTemplate = template;

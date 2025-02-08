@@ -6,6 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
 });
 
-ipcRenderer.on('load-settings', (event, message) => {
-    console.log(`Setting port to ${PORT}`);
-});
+// ipcRenderer.on('load-settings', (event, message) => {
+//     console.log(`Setting port to ${PORT}`);
+// });

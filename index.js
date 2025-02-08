@@ -7,7 +7,7 @@ const fs = require('fs');
 const markdownit = require('markdown-it');
 const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
 const { version } = require('./package.json');
-const { MenuTemplate } = require('./src/js/menu');
+const { menuTemplate } = require('./src/js/menu');
 const { isOlderThan, merge } = require('./src/js/utils');
 const { parseDictionary, formSentence } = require('./src/js/dictionary');
 
@@ -311,7 +311,6 @@ async function launchFrontend(){
         ipcMain.on('selectDirectory', async (event) => {
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
             if(!dir.canceled && dir.filePaths.length > 0){
-                // console.log(dir);
                 event.returnValue = dir.filePaths[0];
             }else{
                 event.returnValue = undefined;
@@ -321,7 +320,7 @@ async function launchFrontend(){
             width: 400,
             height: 640,
             webPreferences: {
-              preload: path.join(SRC_DIR, 'js', 'bridge.js')
+                preload: path.join(SRC_DIR, 'js', 'bridge.js')
             }
         })
         win.webContents.setWindowOpenHandler(({ url }) => {
@@ -331,14 +330,11 @@ async function launchFrontend(){
             shell.openExternal(url);
             return { action: 'deny' };
         });
-        const menu = Menu.buildFromTemplate(MenuTemplate(() => {
+        const menu = Menu.buildFromTemplate(menuTemplate(shell, () => {
             return settings.port;
         }));
         Menu.setApplicationMenu(menu)
         win.loadURL(`http://localhost:${settings.port}/`)
-        // win.webContents.send('load-settings', {
-        //     port: port
-        // });
     });
 
     app.on('window-all-closed', () => {
