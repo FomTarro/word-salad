@@ -96,10 +96,13 @@
             10000);
     }
     createSocket();
+
+    const PARAMS = Object.fromEntries(new URLSearchParams(location.search).entries());
+    const USE_QUEUE = PARAMS.queue === 'false' ? false : true;
     const PROCESSOR = setInterval(
         () => {
             try {
-                if (SPEAKER_QUEUE.length > 0 && !IS_SPEAKING) {
+                if (SPEAKER_QUEUE.length > 0 && (!IS_SPEAKING || !USE_QUEUE)) {
                     speak(SPEAKER_QUEUE.shift());
                 }
             } catch (e) {
