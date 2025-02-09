@@ -1,6 +1,6 @@
 {
   "name": "word-salad",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Text-to-speech processor that uses sentence mixing instead of synthesis.",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,6 @@
   },
   "homepage": "https://github.com/FomTarro/word-salad#readme",
   "dependencies": {
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "markdown-it": "^14.1.0",
     "uuid": "^11.0.5",
@@ -45,7 +44,11 @@
       "target": [
         "portable"
       ]
-    }
+    },
+    "files": [
+      "**/*",
+      "!test/*"
+    ]
   },
   "husky": {
     "hooks": {

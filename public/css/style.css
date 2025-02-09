@@ -2,6 +2,11 @@ html {
     height: 100%;
     background-color: gainsboro;
 }
+
+div, input, button {
+    position: relative;
+}
+
 body {
     overflow: hidden;
     height: 100vh;
@@ -36,13 +41,13 @@ li::marker{
     display: none;
 }
 
-li:nth-child(even){
+li:nth-child(even of :not(.hidden)){
     background-color: white;
 }
 
 button:hover, li:hover{
     color: salmon;
-    background-color: khaki;
+    background-color: khaki !important;
 }
 
 select {
@@ -186,4 +191,27 @@ code {
 #saveIndicator {
     font-size: 0.5em;
     height: 0.5em;
+}
+
+.tooltip {
+    position: absolute;
+    font-size: 0.65rem;
+    font-weight: bold;
+    top: 0rem;
+    right: 0rem;
+    /* top: -0.25rem;
+    right: -0.25rem; */
+    background-color: khaki;
+    border: 2px solid dimgray;
+    border-bottom-left-radius: 50%;
+    /* border-radius: 50%; */
+    width: 1rem;
+    height: 1rem;
+    text-align: center;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+.tooltip:hover {
+    color: salmon; 
 }

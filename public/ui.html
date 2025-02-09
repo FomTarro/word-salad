@@ -18,14 +18,20 @@
                         <div>
                             <label class="bold" for="port">Port</label>
                         </div>
-                        <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                        <div>
+                            <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                        </div>
+                       
                     </div>
                     <div class="flex column noGap grow">
                         <div>
                             <label class="bold" for="source">Browser Source URL</label>
                         </div>
                         <div class="flex row">
-                            <input id="source" name="source" type="text" readonly>
+                            <div class="flex row">
+                                <input id="source" name="source" type="text" readonly>
+                                <div class="tooltip" target="source">?</div>
+                            </div>
                             <button target="source" class="wordButton copy">Copy</button>
                         </div>
                     </div>
@@ -42,7 +48,10 @@
                             <button class="wordButton" id="speakButton">Speak!</button>
                         </div>
                         <div class="flex row">
-                            <input id="speakUrl" name="speakUrl" type="text" readonly>
+                            <div class="flex row">
+                                <input id="speakUrl" name="speakUrl" type="text" readonly>
+                                <div class="tooltip" target="speakUrl">?</div>
+                            </div>
                             <button target="speakUrl" class="wordButton copy">Copy</button>
                         </div>
                     </div>
@@ -67,7 +76,10 @@
                     <div>
                         <div class="flex row">
                             <input class="bankSetting" id="name" type="text">
-                            <input id="uuid" type="text" readonly>
+                            <div>
+                                <input id="uuid" type="text" readonly>
+                                <div class="tooltip" target="uuid">?</div>
+                            </div>
                             <button target="uuid" class="wordButton copy">Copy</button>
                         </div>
                     </div>
@@ -99,6 +111,7 @@
                             <div class="flex row"> 
                                 <button id="wordRefresh" class="wordButton">Refresh</button>
                                 <button id="wordCopy" class="wordButton">Copy</button>
+                                <input class='italic' id="wordFilter" type="text" placeholder="Search word list..."> 
                             </div>
                         </div>
                         <div class="flex scroll frame">
@@ -113,7 +126,6 @@
         <!-- <div id="saveIndicator" class="green"></div> -->
     </body>
     <script>
-
         /**
          * Takes a word over x characters and inserts a ... in the center.
          * @param {string} word - The word to abridge.
@@ -236,6 +248,17 @@
                 JSON.stringify(bank, null, 2)
             );
         });
+
+        document.getElementById("wordFilter").addEventListener('change', async () => {
+            const list = document.getElementById("wordList");
+            for(const li of list.querySelectorAll('li')){
+                if(li.innerHTML.includes(document.getElementById("wordFilter").value)){
+                    li.classList.remove("hidden");
+                }else{
+                    li.classList.add("hidden");
+                }
+            }
+        })
         
         
 
@@ -372,5 +395,17 @@
         load();
         openTab('mainTab');
         checkVersion();
+
+        const tooltips = {
+            source: "This URL is for the Speaker, which plays the spoken audio.\nUse it as a Browser Source in OBS.",
+            speakUrl: "This URL issues a Speak command to the Speaker, for the specified Word Bank with the specified phrase.\nUse this as the target of a Web Request when setting up your redeem, but do not use this as a Browser Soruce.",
+            uuid: "This ID represents the bank, and will not change, even if you edit the bank's display name.\nYou can use this ID when setting up a Speak command, as seen in the above URL."
+        }
+        for(const tooltip of document.getElementsByClassName('tooltip')){
+            const text =  tooltips[tooltip.getAttribute('target')];
+            if(text){
+                tooltip.title = text;
+            }
+        }
     </script>
 </html>

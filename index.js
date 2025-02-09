@@ -1,23 +1,20 @@
 const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
-const { v4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const markdownit = require('markdown-it');
+const { v4 } = require('uuid');
 const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
 const { version } = require('./package.json');
-const { MenuTemplate } = require('./src/js/menu');
+const { menuTemplate } = require('./src/js/menu');
 const { isOlderThan, merge } = require('./src/js/utils');
-require('dotenv').config();
+const { parseDictionary, formSentence } = require('./src/js/dictionary');
 
 const SRC_DIR = path.join(__dirname, './src');
 const PUB_DIR = path.join(__dirname, './public');
 const SIB_DIR = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
 const VERSION = version ?? '0.0.0';
-// indexed by UUID
-/** @type {Map<string, WordBank>} */
-const BANK_MAP = new Map();
 
 /**
  * @typedef {Object} WordBank
@@ -27,6 +24,12 @@ const BANK_MAP = new Map();
  * @property {number} delay
  * @property {Map<string, string[]} words
  */
+
+// indexed by UUID
+/** @type {Map<string, WordBank>} */
+const BANK_MAP = new Map();
+const NEW_BANK = 'New Word Bank'
+
 
 const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
 let settings = {
@@ -58,7 +61,7 @@ async function loadGlobalSettings() {
     settings = merge(settings, data);
     const banks = [...settings.banks]
     if(banks.length <= 0){
-        createWordBank()
+        createWordBank();
     }else{
         for(const bank of banks){
             createWordBank(bank);
@@ -74,7 +77,7 @@ async function loadGlobalSettings() {
 function createWordBank(bankData){
     const data = bankData ?? {};
     const uuid = data.uuid ?? v4();
-    const name = data.name ?? "New Word Bank";
+    const name = data.name ?? NEW_BANK;
     const delay = data.delay ?? 500;
     console.log(`Creating word bank '${data.name}' from path: ${data.path} with UUID ${data.uuid}`)
     const dict = data.path ? parseDictionary(data.path) : new Map();
@@ -98,96 +101,6 @@ function getWordBankByUuid(uuid){
     return BANK_MAP.get(uuid);
 }
 
-/**
- * Recursively traverses a folder heirarchy.
- * @param {string} rootDir - The directory the search started in.
- * @param {string} currentDir - The directory of the current search.
- * @param {string[]} collection - Rolling list of all file paths, relative to the root.
- */
-function getFiles(rootDir, currentDir, collection) {
-    const files = fs.readdirSync(currentDir);
-    for (const file of files) {
-        const qualifiedPath = path.join(currentDir, file);
-        if (fs.existsSync(qualifiedPath)) {
-            if (fs.statSync(qualifiedPath).isDirectory()) {
-                getFiles(rootDir, qualifiedPath, collection);
-            } else {
-                const relativePath = qualifiedPath.replace(rootDir, "");
-                collection.push(relativePath);
-            }
-        } else {
-            console.warn(`No such file: ${qualifiedPath}`);
-        }
-    }
-}
-
-/**
- * Parses a root directory for all valid word audio files.
- * @param {string} dir - The root directory to parse for words.
- * @returns {Map<string, string[]} - A map of word variants, indexed by word.
- */
-function parseDictionary(dir) {
-    const words = []
-    getFiles(dir, dir, words);
-    const extensions = ['.wav', '.mp3', '.mp4']
-    const filteredWords = words.map(word => word.toLowerCase())
-        .filter(word => extensions.includes(path.extname(word)));
-    filteredWords.sort();
-    const dict = new Map();
-    for(const word of filteredWords){
-        const parse = path.parse(word);
-        const split = parse.name.split('_');
-        if(dict.has(split[0])){
-            dict.get(split[0]).push(word);
-        }else{
-            dict.set(split[0], [word]);
-        }
-    }
-    // console.log(dict);
-    return dict;
-}
-
-// fs.watch(wordsDirectory, async e => {
-//     try{
-//         wordsDictionary = await parseDictionary();
-//     }catch(e){
-
-//     }
-// });
-
-/**
- * @typedef {Object} Command
- * @property {string} path - Path to the file to speak for play commands.
- * @property {number} delay - Delay to wait for delay commands.
- */
-
-/**
- * 
- * @param {string} phrase - The phrase to attempt to say
- * @param {Map<string, string[]>} dictionary - The list of available word variants, indexed by word.
- * @return {Command[]} commands - List of commands to process by the client.
- */
-function formSentence(phrase, delay, dictionary){
-    const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
-    const split = [...segmenter.segment(phrase.toLowerCase())]
-        .filter((e) => e.segment.trim() !== "");
-    console.log(split);
-    const commands = []
-    for(const word of split){
-        if(word.isWordLike){
-            if(dictionary.has(word.segment)){
-                commands.push({
-                    path: dictionary.get(word.segment)[Math.floor(Math.random() * dictionary.get(word.segment).length)]
-                })
-            }
-        }else{
-            commands.push({
-                delay: delay,
-            })
-        }
-    }
-    return commands;
-}
 
 async function launchBackend() {
     await loadGlobalSettings();
@@ -239,16 +152,7 @@ async function launchBackend() {
         res.setHeader("Content-Type", "text/html");
         res.status(200).send(
             `<html>
-                <style>
-                    html {
-                        background-color: gainsboro;
-                    }
-                    code {
-                        background-color: whitesmoke;
-                        padding: 2px;
-                        border-radius: 5px;
-                    }
-                </style>
+                <link rel="stylesheet" type="text/css" href='/css/readme.css'>
                 ${md.render(readme)}
             </html>`);
         return;
@@ -408,7 +312,6 @@ async function launchFrontend(){
         ipcMain.on('selectDirectory', async (event) => {
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
             if(!dir.canceled && dir.filePaths.length > 0){
-                // console.log(dir);
                 event.returnValue = dir.filePaths[0];
             }else{
                 event.returnValue = undefined;
@@ -418,7 +321,7 @@ async function launchFrontend(){
             width: 400,
             height: 640,
             webPreferences: {
-              preload: path.join(SRC_DIR, 'js', 'bridge.js')
+                preload: path.join(SRC_DIR, 'js', 'bridge.js')
             }
         })
         win.webContents.setWindowOpenHandler(({ url }) => {
@@ -428,14 +331,11 @@ async function launchFrontend(){
             shell.openExternal(url);
             return { action: 'deny' };
         });
-        const menu = Menu.buildFromTemplate(MenuTemplate(() => {
+        const menu = Menu.buildFromTemplate(menuTemplate(shell, () => {
             return settings.port;
         }));
         Menu.setApplicationMenu(menu)
         win.loadURL(`http://localhost:${settings.port}/`)
-        // win.webContents.send('load-settings', {
-        //     port: port
-        // });
     });
 
     app.on('window-all-closed', () => {
