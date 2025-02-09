@@ -1,87 +1,112 @@
 <!DOCTYPE html>
 <html>
-    <script>
-        function speak(request) {
-            const chunks = []
-            const ready = [];
-            for(const command of request.commands){
-                // if it's a file
-                if(command.path){
-                    const clip = new Audio(`./banks/${request.bank}/word?path=${command.path}`);
-                    clip.oncanplaythrough = () => {
-                        ready.push(true);
-                        if(ready.length == chunks.length){
-                            chunks[0].play();
-                        }
-                    }
-                    chunks.push({
-                        onended(){ 
-                            console.warn("OnEnded Callback not initialized.")
-                        },
-                        play(){
-                            clip.onended = this.onended;
-                            clip.play();
-                        }   
-                    });
-                // else, it's punctuation
-                }else{
-                    ready.push(true);
-                    chunks.push({
-                        onended(){ 
-                            console.warn("OnEnded Callback not initialized.")
-                        },
-                        play(){
-                            setTimeout(this.onended, command.delay)
-                        }
-                    });
-                }
-            }
+<script>
+    let IS_SPEAKING = false;
+    const SPEAKER_QUEUE = [];
 
-            for(let i = 0; i < chunks.length; i++){
-                chunks[i].onended = () => {;
-                    if(i+1 < chunks.length){
-                        chunks[i+1].play();
-                    }else{
-                        console.log("END");
+    function speak(request) {
+        const chunks = []
+        const ready = [];
+        console.log("Processing sentence...");
+        for (const command of request.commands) {
+            // if it's a file
+            if (command.path) {
+                const clip = new Audio(`./banks/${request.bank}/word?path=${command.path}`);
+                clip.oncanplaythrough = () => {
+                    ready.push(true);
+                    if (ready.length == chunks.length) {
+                        chunks[0].play();
+                    }
+                }
+                chunks.push({
+                    onended() {
+                        console.warn("OnEnded Callback not initialized.")
+                    },
+                    play() {
+                        clip.onended = this.onended;
+                        clip.play().catch((r) => { 
+                            console.error(r);
+                            clip.onended(); 
+                        });
+                    }
+                });
+                // else, it's punctuation
+            } else {
+                ready.push(true);
+                chunks.push({
+                    onended() {
+                        console.warn("OnEnded Callback not initialized.")
+                    },
+                    play() {
+                        setTimeout(this.onended, command.delay)
+                    }
+                });
+            }
+        }
+
+        if(chunks.length > 0){
+            IS_SPEAKING = true;
+            console.log(`Sentence starting with ${chunks.length} parts!`);
+            for (let i = 0; i < chunks.length; i++) {
+                chunks[i].onended = () => {
+                    if (i + 1 < chunks.length) {
+                        chunks[i + 1].play();
+                    } else {
+                        console.log("Sentence ended!");
+                        IS_SPEAKING = false;
                     }
                 }
             }
         }
-        var pulse;
-        const protocolPrefix = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
-        function createSocket() {
-            const socket = new WebSocket(protocolPrefix + '//' + location.host);
-            socket.onopen = function(){
-                console.log("open!");
+    }
+
+    let KEEP_ALIVE;
+    const PROTOCOL = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+    function createSocket() {
+        const socket = new WebSocket(PROTOCOL + '//' + location.host);
+        socket.onopen = function () {
+            console.log("Connected to server!");
+        }
+        socket.onmessage = (message) => {
+            console.log(message.data)
+            const data = JSON.parse(message.data);
+            if (data.commands && data.bank) {
+                SPEAKER_QUEUE.push(data);
             }
-            socket.onmessage = (message) => {
-                console.log(message.data)
-                const data = JSON.parse(message.data);
-                if(data.commands && data.bank){
-                    speak(data);
+        }
+        socket.onclose = () => {
+            createSocket();
+        }
+        const send = (obj) => {
+            if (socket && socket.readyState === socket.OPEN) {
+                socket.send(JSON.stringify(obj));
+            }
+        }
+        if (KEEP_ALIVE) {
+            clearInterval(KEEP_ALIVE);
+        }
+        KEEP_ALIVE = setInterval(
+            () => {
+                try {
+                    send({ pulse: 1 });
+                } catch (e) {
+                    console.warn(e);
                 }
-            }
-            socket.onclose = () => {
-                createSocket();
-            }
-            const send = (obj) => {
-                if(socket &&  socket.readyState === socket.OPEN){
-                    socket.send(JSON.stringify(obj));
-                }
-            }
-            if(pulse){
-                clearInterval(pulse);
-            }
-            pulse = setInterval(
-                () => {
-                    try{
-                        send({ pulse: 1 });
-                    }catch(e){
-                        console.warn(e);
-                    }
-                }, 
+            },
             10000);
-        }
-        createSocket();
-    </script>
+    }
+    createSocket();
+    const PROCESSOR = setInterval(
+        () => {
+            try {
+                if (SPEAKER_QUEUE.length > 0 && !IS_SPEAKING) {
+                    speak(SPEAKER_QUEUE.shift());
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        },
+        100);
+</script>
+
 </html>

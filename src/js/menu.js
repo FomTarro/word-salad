@@ -3,7 +3,7 @@ const { app, Menu} = require('electron')
 const isMac = process.platform === 'darwin'
 /**
  * @param {Electron.Shell} shell 
- * @param {*} getPort 
+ * @param {Promise<number>} getPort 
  * @returns {Menu}
  */
 const template = (shell, getPort) => [
@@ -24,46 +24,15 @@ const template = (shell, getPort) => [
             ]
         }]
         : []),
-    // { role: 'fileMenu' }
     {
+        role: 'fileMenu',
         label: 'File',
         submenu: [
             isMac ? { role: 'close' } : { role: 'quit' }
         ]
     },
-    // { role: 'editMenu' }
-    // {
-    //     label: 'Edit',
-    //     submenu: [
-    //         { role: 'undo' },
-    //         { role: 'redo' },
-    //         { type: 'separator' },
-    //         { role: 'cut' },
-    //         { role: 'copy' },
-    //         { role: 'paste' },
-    //         ...(isMac
-    //             ? [
-    //                 { role: 'pasteAndMatchStyle' },
-    //                 { role: 'delete' },
-    //                 { role: 'selectAll' },
-    //                 { type: 'separator' },
-    //                 {
-    //                     label: 'Speech',
-    //                     submenu: [
-    //                         { role: 'startSpeaking' },
-    //                         { role: 'stopSpeaking' }
-    //                     ]
-    //                 }
-    //             ]
-    //             : [
-    //                 { role: 'delete' },
-    //                 { type: 'separator' },
-    //                 { role: 'selectAll' }
-    //             ])
-    //     ]
-    // },
-    // { role: 'viewMenu' }
     {
+        role: 'viewMenu',
         label: 'View',
         submenu: [
             { role: 'reload' },
@@ -77,24 +46,6 @@ const template = (shell, getPort) => [
             { role: 'togglefullscreen' }
         ]
     },
-    // { role: 'windowMenu' }
-    // {
-    //     label: 'Window',
-    //     submenu: [
-    //         { role: 'minimize' },
-    //         { role: 'zoom' },
-    //         ...(isMac
-    //             ? [
-    //                 { type: 'separator' },
-    //                 { role: 'front' },
-    //                 { type: 'separator' },
-    //                 { role: 'window' }
-    //             ]
-    //             : [
-    //                 { role: 'close' }
-    //             ])
-    //     ]
-    // },
     {
         role: 'help',
         label: 'Help',
@@ -102,7 +53,7 @@ const template = (shell, getPort) => [
             {
                 label: 'Setup Guide',
                 click: async () => {
-                    await shell.openExternal(`http://localhost:${getPort()}/readme`)
+                    await shell.openExternal(`http://localhost:${await getPort()}/readme`)
                 }
             },
             {

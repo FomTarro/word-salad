@@ -1,10 +1,10 @@
 const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
-const { v4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const markdownit = require('markdown-it');
+const { v4 } = require('uuid');
 const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
 const { version } = require('./package.json');
 const { menuTemplate } = require('./src/js/menu');
@@ -16,11 +16,6 @@ const PUB_DIR = path.join(__dirname, './public');
 const SIB_DIR = process.env.PORTABLE_EXECUTABLE_DIR ?? __dirname;
 const VERSION = version ?? '0.0.0';
 
-// indexed by UUID
-/** @type {Map<string, WordBank>} */
-const BANK_MAP = new Map();
-const NEW_BANK = 'New Word Bank'
-
 /**
  * @typedef {Object} WordBank
  * @property {string} uuid
@@ -29,6 +24,12 @@ const NEW_BANK = 'New Word Bank'
  * @property {number} delay
  * @property {Map<string, string[]} words
  */
+
+// indexed by UUID
+/** @type {Map<string, WordBank>} */
+const BANK_MAP = new Map();
+const NEW_BANK = 'New Word Bank'
+
 
 const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
 let settings = {
@@ -60,7 +61,7 @@ async function loadGlobalSettings() {
     settings = merge(settings, data);
     const banks = [...settings.banks]
     if(banks.length <= 0){
-        createWordBank()
+        createWordBank();
     }else{
         for(const bank of banks){
             createWordBank(bank);
