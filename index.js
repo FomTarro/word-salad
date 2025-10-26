@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const markdownit = require('markdown-it');
 const { v4 } = require('uuid');
-const { app, dialog, BrowserWindow, ipcMain, shell, Menu } = require('electron');
+const { app, dialog, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker} = require('electron');
 const { version } = require('./package.json');
 const { menuTemplate } = require('./src/js/menu');
 const { isOlderThan, merge } = require('./src/js/utils');
@@ -29,7 +29,7 @@ const VERSION = version ?? '0.0.0';
 /** @type {Map<string, WordBank>} */
 const BANK_MAP = new Map();
 const NEW_BANK = 'New Word Bank'
-
+const ON_SPEAK_CALLBACKS = [];
 
 const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
 let settings = {
@@ -134,6 +134,8 @@ async function launchBackend() {
             );
         });
     }
+
+    ON_SPEAK_CALLBACKS.push(sendToWsClients);
 
     // Express Webserver API
     expressServer.get(['/',], async (req, res) => {
@@ -290,10 +292,12 @@ async function launchBackend() {
             const bank = getWordBankByUuid(req.query.bank);
             if(bank){
                 const commands = formSentence(req.query.phrase, bank.delay, bank.words);
-                sendToWsClients({ 
-                    bank: bank.uuid,
-                    commands: commands 
-                });
+                for(const callback of ON_SPEAK_CALLBACKS){
+                    callback({ 
+                        bank: bank.uuid,
+                        commands: commands 
+                    });
+                }
                 res.status(200).send();
                 return;
             }
@@ -308,6 +312,7 @@ async function launchBackend() {
 async function launchFrontend(){
     await launchBackend();
     // Electron API
+    const powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
     app.whenReady().then(() => {
         ipcMain.on('selectDirectory', async (event) => {
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
@@ -317,11 +322,13 @@ async function launchFrontend(){
                 event.returnValue = undefined;
             }
         });
+
         const win = new BrowserWindow({
             width: 400,
             height: 640,
             webPreferences: {
-                preload: path.join(SRC_DIR, 'js', 'bridge.js')
+                preload: path.join(SRC_DIR, 'js', 'bridge.js'),
+                backgroundThrottling: false
             }
         })
         win.webContents.setWindowOpenHandler(({ url }) => {
@@ -331,15 +338,23 @@ async function launchFrontend(){
             shell.openExternal(url);
             return { action: 'deny' };
         });
+
+        const onSpeak = (command) => {
+            win.webContents.send("onSpeakCommand", command);
+        }
+        ON_SPEAK_CALLBACKS.push(onSpeak);
+        
         const menu = Menu.buildFromTemplate(menuTemplate(shell, () => {
             return settings.port;
         }));
+
         Menu.setApplicationMenu(menu)
-        win.loadURL(`http://localhost:${settings.port}/`)
+        win.loadURL(`http://localhost:${settings.port}/`);
     });
 
     app.on('window-all-closed', () => {
         app.quit();   
+        powerSaveBlocker.stop(powerSaveBlockerId);
     });
 }
 

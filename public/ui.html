@@ -4,7 +4,7 @@
     <body class="flex column">
         <div>
             <div>
-                <label class="bold">Word Salad <span id="currentVersion">v1.0.0</span></label><span id="newVersion" class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span> 
+                <label class="bold">Word Salad <span id="currentVersion">v1.2.0</span></label><span id="newVersion" class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span> 
             </div>
             <div>
                 <a href="/readme" target="_blank">Setup Guide</a>
@@ -23,7 +23,7 @@
                         </div>
                        
                     </div>
-                    <div class="flex column noGap grow">
+                    <div class="flex column noGap grow hidden">
                         <div>
                             <label class="bold" for="source">Browser Source URL</label>
                         </div>
@@ -125,6 +125,7 @@
         </div>
         <!-- <div id="saveIndicator" class="green"></div> -->
     </body>
+    <script src="speaker.js"></script>
     <script>
         /**
          * Takes a word over x characters and inserts a ... in the center.
@@ -259,8 +260,6 @@
                 }
             }
         })
-        
-        
 
         async function load(){
             const response = await fetch(`/load`, {
@@ -390,6 +389,11 @@
             const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`, {
                 method: "GET",
             });
+        });
+
+        // Speak from the UI, rather than a browser source
+        window.electronAPI.onSpeakCommand((message) => {
+            SPEAKER_QUEUE.push(message);
         });
 
         load();
