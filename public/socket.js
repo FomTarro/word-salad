@@ -33,4 +33,4 @@ function createSocket() {
         },
         10000);
 }
-// createSocket();
+createSocket();

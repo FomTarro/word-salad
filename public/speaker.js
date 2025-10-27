@@ -8,7 +8,7 @@ function speak(request) {
     for (const command of request.commands) {
         // if it's a file
         if (command.path) {
-            const clip = new Audio(`./banks/${request.bank}/word?path=${command.path}`);
+            const clip = new Audio(`./banks/${request.bank}/word?word=${command.word}&path=${command.path}`);
             clip.oncanplaythrough = () => {
                 ready.push(true);
                 if (ready.length == chunks.length) {

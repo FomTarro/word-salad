@@ -3,13 +3,13 @@ const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
-const markdownit = require('markdown-it');
+const showdown = require('showdown');
 const { v4 } = require('uuid');
 const { app, dialog, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker} = require('electron');
 const { version } = require('./package.json');
 const { menuTemplate } = require('./src/js/menu');
 const { isOlderThan, merge } = require('./src/js/utils');
-const { parseDictionary, formSentence } = require('./src/js/dictionary');
+const { parseDictionary, formSentence, Command } = require('./src/js/dictionary');
 
 const SRC_DIR = path.join(__dirname, './src');
 const PUB_DIR = path.join(__dirname, './public');
@@ -29,10 +29,17 @@ const VERSION = version ?? '0.0.0';
 /** @type {Map<string, WordBank>} */
 const BANK_MAP = new Map();
 const NEW_BANK = 'New Word Bank'
+
+/**
+ * @callback OnSpeakCallback
+ * @param {Command} command - The speak command passed to the callback.
+ */
+
+/** @type {OnSpeakCallback[]} */
 const ON_SPEAK_CALLBACKS = [];
 
 const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
-let settings = {
+let SETTINGS = {
     tempPath: SRC_DIR,
     settingsPath: SETTINGS_FILE_PATH,
     port: 8095,
@@ -40,10 +47,10 @@ let settings = {
     banks: []
 }
 
-function save(data) {
+const save = (data) => {
     console.log("Saving...");
-    settings = merge(settings, data)
-    settings.banks = [...[...BANK_MAP.values()].map(val =>  { 
+    SETTINGS = merge(SETTINGS, data)
+    SETTINGS.banks = [...[...BANK_MAP.values()].map(val =>  { 
         return {
             uuid: val.uuid,
             name: val.name,
@@ -51,15 +58,15 @@ function save(data) {
             delay: val.delay,
         }
     })];
-    console.log(settings);
-    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings));
+    console.log(SETTINGS);
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(SETTINGS));
 }
 
-async function loadGlobalSettings() {
+const loadGlobalSettings = () => {
     console.log("Loading...");
     const data = fs.existsSync(SETTINGS_FILE_PATH) ? JSON.parse(fs.readFileSync(SETTINGS_FILE_PATH).toString()) : {};
-    settings = merge(settings, data);
-    const banks = [...settings.banks]
+    SETTINGS = merge(SETTINGS, data);
+    const banks = [...SETTINGS.banks];
     if(banks.length <= 0){
         createWordBank();
     }else{
@@ -67,14 +74,14 @@ async function loadGlobalSettings() {
             createWordBank(bank);
         }
     }
-    save(settings);
+    save(SETTINGS);
 }
 
 /**
  * Creates a new Word Bank and loads it into memory.
  * @param {WordBank} bankData - Data about the bank. Blank fields will be populated automatically.
  */
-function createWordBank(bankData){
+const createWordBank = (bankData) => {
     const data = bankData ?? {};
     const uuid = data.uuid ?? v4();
     const name = data.name ?? NEW_BANK;
@@ -97,13 +104,12 @@ function createWordBank(bankData){
  * @param {string} name - Bank to find by UUID
  * @returns {WordBank} - Found bank. Undefined if no such bank exists.
  */
-function getWordBankByUuid(uuid){
+const getWordBankByUuid = (uuid) => {
     return BANK_MAP.get(uuid);
 }
 
-
-async function launchBackend() {
-    await loadGlobalSettings();
+const launchBackend = () => {
+    loadGlobalSettings();
     const expressServer = express();
     expressServer.use(express.json());
     expressServer.use('/', express.static(PUB_DIR));
@@ -112,9 +118,9 @@ async function launchBackend() {
     // Makes an http server out of the express server
     const httpServer = http.createServer(expressServer);
     // Starts the http server
-    const server = httpServer.listen(settings.port, () => {
+    const server = httpServer.listen(SETTINGS.port, () => {
         // code to execute when the server successfully starts
-        console.log(`App version: ${VERSION} started on ${settings.port}`);
+        console.log(`App version: ${VERSION} started on ${SETTINGS.port}`);
     });
 
     // Websocket API
@@ -150,12 +156,14 @@ async function launchBackend() {
 
     expressServer.get(['/readme'], async (req, res) => {
         const readme = fs.readFileSync(path.join(PUB_DIR, "..", "README.md")).toString();
-        const md = markdownit()
+        const md = new showdown.Converter({
+            metadata: false,
+        });
         res.setHeader("Content-Type", "text/html");
         res.status(200).send(
             `<html>
                 <link rel="stylesheet" type="text/css" href='/css/readme.css'>
-                ${md.render(readme)}
+                ${md.makeHtml(readme)}
             </html>`);
         return;
     });
@@ -181,6 +189,7 @@ async function launchBackend() {
     expressServer.post(['/save/global'], async (req, res) => {
         if(req.body){
             save(req.body);
+            // if we're changing our port
             if(req.body.port){
                 res.status(200).send();
                 // reboot backend
@@ -189,7 +198,7 @@ async function launchBackend() {
                 server.close(async () => {
                     console.log("closing websocket server...");
                     wsServer.close(async () => {
-                        await launchBackend();
+                        launchBackend();
                     });
                 });
             }
@@ -204,7 +213,7 @@ async function launchBackend() {
                 const bank = BANK_MAP.get(req.body.uuid)
                 if(bank){
                     BANK_MAP.set(req.body.uuid, merge(bank, req.body));
-                    save(settings);
+                    save(SETTINGS);
                     res.status(200).send();
                     return;
                 }else{
@@ -220,7 +229,7 @@ async function launchBackend() {
     expressServer.post(['/delete/bank',], async (req, res) => {
         if(req.body && req.body.uuid){
             BANK_MAP.delete(req.body.uuid);
-            save(settings);
+            save(SETTINGS);
             res.status(200).send();
             return;
         }else{
@@ -231,13 +240,13 @@ async function launchBackend() {
 
     expressServer.post(['/create/bank',], async (req, res) => {
         createWordBank();
-        save(settings);
+        save(SETTINGS);
         res.status(200).send();
         return;
     });
 
     expressServer.get(['/load',], async (req, res) => {
-        res.status(200).send(settings);
+        res.status(200).send(SETTINGS);
         return;
     });
 
@@ -251,7 +260,7 @@ async function launchBackend() {
                 return;
             }
         }
-        res.status(400).send([]);
+        res.status(400).send({});
         return;
     });
 
@@ -262,7 +271,7 @@ async function launchBackend() {
             if(bank){
                 // refresh
                 const updated = createWordBank(bank);
-                console.log(`Bank contains ${updated.words.size} words!`);
+                console.log(`Word List for bank ${bank.name} has ${updated.words.size} words.`);
                 res.status(200).send([...updated.words.keys()]);
                 return;
             }
@@ -273,11 +282,11 @@ async function launchBackend() {
 
     // get specific word file
     expressServer.get(['/banks/:uuid/word',], async (req, res) => {
-        if(req.params && req.params.uuid && req.query.path){
+        if(req.params && req.params.uuid && req.query.path && req.query.word){
             const bank = getWordBankByUuid(req.params.uuid);
             if(bank){
                 const filePath = path.join(bank.path, req.query.path);
-                console.log(`Looking for: ${filePath}`);
+                console.log(`${req.query.word} -> ${filePath}`);
                 res.status(200).sendFile(filePath);
                 return;
             }
@@ -309,11 +318,10 @@ async function launchBackend() {
     return server;
 }
 
-async function launchFrontend(){
-    await launchBackend();
-    // Electron API
+const launchFrontend = () => {
     const powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
     app.whenReady().then(() => {
+        // Electron API
         ipcMain.on('selectDirectory', async (event) => {
             const dir = await dialog.showOpenDialog({ properties: ['openDirectory']});
             if(!dir.canceled && dir.filePaths.length > 0){
@@ -323,6 +331,14 @@ async function launchFrontend(){
             }
         });
 
+        // Toolbar
+        Menu.setApplicationMenu(
+            Menu.buildFromTemplate(menuTemplate(shell, () => {
+                return SETTINGS.port;
+            })
+        ));
+
+        // Window
         const win = new BrowserWindow({
             width: 400,
             height: 640,
@@ -338,24 +354,21 @@ async function launchFrontend(){
             shell.openExternal(url);
             return { action: 'deny' };
         });
-
-        const onSpeak = (command) => {
+        ON_SPEAK_CALLBACKS.push((command) => {
             win.webContents.send("onSpeakCommand", command);
-        }
-        ON_SPEAK_CALLBACKS.push(onSpeak);
-        
-        const menu = Menu.buildFromTemplate(menuTemplate(shell, () => {
-            return settings.port;
-        }));
-
-        Menu.setApplicationMenu(menu)
-        win.loadURL(`http://localhost:${settings.port}/`);
+        });
+        win.loadURL(`http://localhost:${SETTINGS.port}/`);
     });
 
     app.on('window-all-closed', () => {
-        app.quit();   
         powerSaveBlocker.stop(powerSaveBlockerId);
+        app.quit();   
     });
 }
 
-launchFrontend();
+const launchApp = async () => {
+    launchBackend();
+    launchFrontend();
+}
+
+launchApp();

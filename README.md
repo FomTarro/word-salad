@@ -1,10 +1,12 @@
-# Word Salad v1.1.0
+# Word Salad v1.2.0
+
+<hr>
 
 ## The What
 "*Word Salad*" is a **text-to-speech application** with a **twist**: rather than using speech synthesis, it instead uses **sentence mixing**. By providing pre-recorded words as individual files, "*Word Salad*" is able to assemble sentences to play back as audio. Perfect for Twitch redeems and the like! 
 
 ## The Why
-Text-to-speech is a common redeem that I see on many channels. However, I feel that the open-ended nature encourages chatters to say whatever intrusive thought crosses their mind, with little concern for length or disruption. By restricting the pool of available words, "*Word Salad*" presents the chatter with a fun puzzle. Thus, to say anything coherent at all feels like a small victory, and figuring out how to convey your desired sentiment requires critical thinking. It's good exercise for the mind and soul.
+Text-to-speech is a common redeem that I see on many channels. However, I feel that the open-ended nature of synthesized speech encourages chatters to say whatever intrusive thought crosses their mind, with little concern for length or disruption. It's boorish. By restricting the pool of available words, "*Word Salad*" presents the chatter with a fun puzzle, thereby making the act of forming a coherent sentence feel like a small victory. Figuring out how to convey your desired sentiment requires critical thinking. It's good exercise for the mind and soul.
 
 ## The How
 This application is powered by Node.js in an Electron shell for the frontend.
@@ -19,18 +21,20 @@ From there, fire up terminal and run good old `npm install`. Then, you can launc
 
 You can also package it into a portable executable file yourself by running `npm run build`, which will output into the `dist` folder. This process uses [electron.build](https://www.electron.build/).
 
+<hr>
+
 ## Adding Words
 Obviously, I can't ship this application pre-filled with audio that I don't own, so you'll have to create your own Word Banks. To do this, follow these steps:
 
-1. Click the green plus icon next to the World Banks dropdown to create a new Word Bank.
+1. Click the green "*plus*" icon next to the World Banks dropdown to create a new Word Bank.
     - You can also just rename the default, empty Word Bank.
 2. Select your new Word Bank from the dropdown if it isn't already. 
-    - **Important!** Observe that your bank has a display name, and also Bank ID. This ID will be formatted like `5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7`. You will need this ID later when making Speak commands.
+    - **Important!** Observe that your Word Bank has a display name, and also Bank ID. This ID will be formatted like `5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7`. You will need this ID later when making Speak commands.
     - You can rename your Word Bank at any time, but the ID will remain constant.
 3. Create a folder and populate it with audio files. 
     - Accepted file formats are `.wav`, `.mp3` and `.mp4`.
-    - File names must be formatted as `word_number.wav`. The filename informs the application what each word is. For example, `the_02.wav` represents a variant of the word *"the"*. 
-    - **Optional!** You can designate sounds to play for words that are not present in the bank by simply naming the sound file `_`. For example, `_.wav` and `_1.wav` could be *"Umm"* and *"hmm"*. If these files are not present, the player will simply skip over unrecognized words. 
+    - File names must be formatted as `<word>_<number>.wav`. The filename informs the application what each word is. For example, `the_02.wav` represents a variant of the word *"the"*. 
+    - **Optional!** You can designate sounds to play for words that are not present in the bank by simply naming the sound file `_`. For example, `_.wav` and `_1.wav` could be *"uhh"* and *"hmm"*. If these files are not present, the player will simply skip over unrecognized words. 
     - Subfolders within main folder folder are allowed.
 4. Click the *"Select File Folder"* button to navigate to the folder where your audio files are stored. This should automatically populate your Word List.
 
@@ -39,17 +43,19 @@ As a quick example, you can download all of the Half-Life 1 VOX word files [from
 
 If you're looking for a good jumping-off point for choosing your own words from your own source, I found the [Wikipeda List of the 100 most common words in the English Language](https://en.wikipedia.org/wiki/Most_common_words_in_English) to be a useful guide in determining which words were most important to find and add to the Word Bank from my chosen source.
 
+<hr>
+
 ## Making It Speak
-The application has two components: the Main App and the Browser Source. Once you have populated your Word Bank folder as outlined in the previous section, you can make the application speak by following these steps:
-1. Add the speaker as a Browser Source to your OBS Scene with the URL `http://localhost:8095/speaker`. Be sure to check the box allowing OBS to control the Audio of this source!
-    - **Important!** `8095` is the default port. If you change the Port Number in your Settings, be sure to update the URLs of your Browser Sources.
-    - If you start OBS before starting this application in the future, you may need to refresh your Browser Source. Without the Main App running first, the Browser Source can't be served.
-    - It is recommended to go into "*Advanced Audio Settings*" and enable "*Monitor and Output*" for this Browser Soruce's audio in OBS.
-2. Issue a speak command to the Main App by sending a `GET` request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=<your sentence here>`. 
+
+As of v1.2.0, setup has been streamlined to reduce the number of moving parts. If you had previously set up a Browser Source as a speaker in OBS, you can now remove it. By default, audio will now play out of the "*Word Salad*" app itself. The [old Browser-Source-based speaker is still supported](#browsersourcespeaker), but is no longer the recommended approach. 
+
+Instead, just follow these simple steps:
+1. Add an [**Application Audio Capture Source**](https://obsproject.com/kb/application-audio-capture-guide) to your OBS Scene, and have it capture the audio from the "*Word Salad*" app.
+2. Issue a speak command to the app by sending a `GET` request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=<your sentence here>`. 
     - For example, with a Word Bank with Bank ID `5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7` and the desired phrase `You dense Diglett!`, your request would be `http://localhost:8095/speak?bank=5ea7fc19-5be6-4d62-85d4-1ef80f8fdeb7&phrase=You dense Diglett!`
-    - You can hit this URL in any browser to issue the command, or use the Main App's UI.
-    - **Optional!** Speak commands will be processed in a queue, in order to prevent the system from speaking over itself. If you would like to disable this behavior, add `?queue=false` to the end of the Browser Source URL, like `http://localhost:8095/speaker?queue=false`.
-3. If you had Audio Monitor enabled, you should have heard the phrase play, provided that the words you wanted to say exist in your Word Bank!
+    - You can hit this URL in any browser to issue the command, or use the "*Speak!*" button on the app's UI.
+
+<hr>
 
 ## Setting Up Twitch Redeems
 The current version of "*Word Salad*" doesn't actually feature any direct Twitch integration at all! Instead, you can use it in tandem with a Channel Manager like [MixItUp](https://mixitupapp.com/) by following these steps:
@@ -58,10 +64,27 @@ The current version of "*Word Salad*" doesn't actually feature any direct Twitch
     - Make sure to check the "*Require Viewer to Enter Text*" box.
 2. In MixItUp, edit the new Channel Point redeem by adding an action that issues a Web Request to `http://localhost:8095/speak?bank=<Bank ID>&phrase=$message`.
     - The [`$message`](https://wiki.mixitupapp.com/en/commands/event-commands#twitch-channel-points-redeemed) variable in MixItUp passes the content of the redeem's text to the Web Request.
-3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`, or by clicking the "*Copy*" button next to your Word List on the Man App's UI. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
+3. Get the list of words your chatters can use by going to `http://localhost:8095/banks/<Bank ID>/words`, or by clicking the "*Copy*" button next to your Word List on the UI. It is recommended that you take this list and put it somewhere publicly accessible. Your homepage, your Twitch bio, wherever works!
 
 You can set up different redeems for different Word Banks by repeating the above steps with different Bank IDs!
+
+<hr>
 
 ## Troubleshooting
 
 This app was envisioned and constructed in about two weeks by **[Tom "Skeletom" Farro](https://www.skeletom.net)**. It's entirely possible that something doesn't work, or there's a setup step he forgot to document. Please **feel free** to reach out to him on social media or via [email](mailto:tom@skeletom.net) if you encounter any issues!
+
+<hr>
+
+## Legacy Support
+### Browser Source Speaker
+Prior to v1.2.0, the method for making "*Word Salad*" speak involved adding a **Browser Source** to your OBS scenes, and having that play audio, which you could monitor. This added needless complexity to the system, and provided an additional potential point of failure, so it is being retired. It is still stechnically supported for compatibility reasons, but isn't the recommended approach. 
+
+Still, if you want to use it, follow these steps:
+
+1. Add the speaker as a Browser Source to your OBS Scene with the URL `http://localhost:8095/speaker`. Be sure to check the box allowing OBS to control the Audio of this source!
+    - **Important!** `8095` is the default port. If you change the Port Number in your Settings, be sure to update the URLs of your Browser Sources.
+    - If you start OBS before starting this application in the future, you may need to refresh your Browser Source. Without the Main App running first, the Browser Source can't be served.
+    - It is recommended to go into "*Advanced Audio Settings*" and enable "*Monitor and Output*" for this Browser Soruce's audio in OBS.
+2. Issue a speak command just as you would for the [more streamlined setup](#makingitspeak).
+3. If you had Audio Monitor enabled, you should have heard the phrase play, provided that the words you wanted to say exist in your Word Bank!

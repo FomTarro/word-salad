@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.sendSync("selectDirectory");
     },
     onSpeakCommand: async(callback) => {
-        return ipcRenderer.on('onSpeakCommand', (event, ...args) => callback(...args))
+        return ipcRenderer.on("onSpeakCommand", (event, ...args) => callback(...args))
     }
 });
 

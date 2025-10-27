@@ -28,6 +28,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "markdown-it": "^14.1.0",
+    "showdown": "^2.1.0",
     "uuid": "^11.0.5",
     "ws": "^8.18.0"
   },

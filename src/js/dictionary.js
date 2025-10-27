@@ -63,6 +63,7 @@ function parseDictionary(dir) {
 
 /**
  * @typedef {Object} Command
+ * @property {string} word - Word.
  * @property {string} path - Path to the file to speak for play commands.
  * @property {number} delay - Delay to wait for delay commands.
  */
@@ -77,16 +78,18 @@ function formSentence(phrase, delay, dictionary){
     const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
     const split = [...segmenter.segment(phrase.toLowerCase())]
         .filter((e) => e.segment.trim() !== "");
-    console.log(split);
+    // console.log(split);
     const commands = []
     for(const word of split){
         if(word.isWordLike || word.segment === UNKNOWN_WORD){
             if(dictionary.has(word.segment)){
                 commands.push({
+                    word: word.segment,
                     path: dictionary.get(word.segment)[Math.floor(Math.random() * dictionary.get(word.segment).length)]
                 })
             }else if(dictionary.has(UNKNOWN_WORD)){
                 commands.push({
+                    word: UNKNOWN_WORD,
                     path: dictionary.get(UNKNOWN_WORD)[Math.floor(Math.random() * dictionary.get(UNKNOWN_WORD).length)]
                 })
             }
