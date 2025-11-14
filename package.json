@@ -8,6 +8,7 @@
     "build": "npm install && npx electron-builder build",
     "test": "jest --coverage --collectCoverageFrom=src/**/*.{js,jsx}",
     "test-leaks": "jest --runInBand --detectOpenHandles",
+    "stress-test": "cd test && node stress.test.js",
     "check-push": "npm run test"
   },
   "repository": {

@@ -43,6 +43,7 @@ let SETTINGS = {
     tempPath: SRC_DIR,
     settingsPath: SETTINGS_FILE_PATH,
     port: 8095,
+    volumeMaster: 1,
     /** @type {WordBank[]} */
     banks: []
 }
@@ -303,6 +304,7 @@ const launchBackend = () => {
                 const commands = formSentence(req.query.phrase, bank.delay, bank.words);
                 for(const callback of ON_SPEAK_CALLBACKS){
                     callback({ 
+                        phrase: req.query.phrase,
                         bank: bank.uuid,
                         commands: commands 
                     });
@@ -358,6 +360,15 @@ const launchFrontend = () => {
             win.webContents.send("onSpeakCommand", command);
         });
         win.loadURL(`http://localhost:${SETTINGS.port}/`);
+        const originalConsole = console.log;
+        console.log = (msg) => {
+            const timestamp = Date.now();
+            const dateObject = new Date(timestamp);
+            const isoString = dateObject.toISOString();
+            msg = `[${isoString}] ${msg}`
+            win.webContents.send("onLog", msg);
+            originalConsole(msg);
+        }
     });
 
     app.on('window-all-closed', () => {

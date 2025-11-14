@@ -1,4 +1,8 @@
 /**
+ * ===== Helper Functions =====
+ */
+
+/**
  * Takes a string over x characters and inserts a ... in the center.
  * @param {string} word - The word to abridge.
  * @param {number} maxLength - The maximum length to allow.
@@ -12,6 +16,9 @@ function abridgeString(word, maxLength) {
     return word;
 }
 
+/**
+ * Checks to see if a new version of the application is available.
+ */
 const checkVersion = async() => {
     const response = await fetch(`/version`, {
         method: "GET",
@@ -27,111 +34,38 @@ const checkVersion = async() => {
     }
 }
 
-document.getElementById('source').value = `http://${window.location.host}/speaker`;
-const dropdown = document.getElementById('selectDropdown');
 function getSelectedWordBank(){
-    return dropdown.options[dropdown.selectedIndex] ?? {};
+    return SELECT_BANK_DROPDOWN.options[SELECT_BANK_DROPDOWN.selectedIndex] ?? {};
 }
-dropdown.addEventListener('change', async () => {
-    await populateWordBankData();
-});
 
-document.getElementById('createButton').addEventListener('click', async () => {
-    const response = await fetch("/create/bank", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        }
-    });
-    await load();
-    dropdown.value = dropdown.options[dropdown.options.length - 1].value;
-    await populateWordBankData()
-});
-
-document.getElementById('deleteButton').addEventListener('click', async () => {
-    const data = {
-        uuid: getSelectedWordBank().value
-    };
-    const response = await fetch("/delete/bank", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data)
-    });
-    await load();
-});
-
-async function getWordListForBank(bank) {
-    const settings = await fetch(`/banks/${bank}/words`, {
+async function getWordListForWordBank(bankUuid) {
+    const response = await fetch(`/banks/${bankUuid}/words`, {
         method: "GET",
     });
-    const body = await settings.json();
-    const list = document.getElementById("wordList");
-    list.innerHTML = "";
+    const body = await response.json();;
+    BANK_WORD_LIST.innerHTML = "";
     for(const word of body){
         const li = document.createElement("li");
         li.innerHTML = word;
         list.append(li);
         li.addEventListener('click', () => {
-            speakInput.value = `${speakInput.value} ${word}`.trim();
+            SPEAK_COMMAND_INPUT.value = `${SPEAK_COMMAND_INPUT.value} ${word}`.trim();
             var event = new Event('change')
-            speakInput.dispatchEvent(event);
+            SPEAK_COMMAND_INPUT.dispatchEvent(event);
         })
     }
     document.getElementById("wordCount").innerHTML = `(${body.length} words total)`;
 }
 
-async function populateWordBankData(){
-    console.log("Populating for word bank:" + getSelectedWordBank().value);
-    const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-        }
-    });
-    const bank = await response.json();
-    for(const property in bank){
-        const elem = document.getElementById(property);
-        if(elem){
-            elem.value = bank[property];
-        }
-    }
-    document.getElementById("path").innerHTML = bank.path ? abridgeString(bank.path, 32) : "...";
-    await getWordListForBank(bank.uuid);
-    updateSpeakUrl();
+function updateSpeakUrl(){
+    SPEAK_COMMAND_URL.value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${SPEAK_COMMAND_INPUT.value}`;
 }
 
+/**
+ * ===== Saving and Loading settings ====
+ */
 
-document.getElementById("wordRefresh").addEventListener('click', async () => {
-    getWordListForBank(getSelectedWordBank().value);
-});
-
-document.getElementById("wordCopy").addEventListener('click', async () => {
-    const response = await fetch(`/banks/${getSelectedWordBank().value}/words`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-        }
-    });
-    const bank = await response.json();
-    navigator.clipboard.writeText(
-        JSON.stringify(bank, null, 2)
-    );
-});
-
-document.getElementById("wordFilter").addEventListener('change', async () => {
-    const list = document.getElementById("wordList");
-    for(const li of list.querySelectorAll('li')){
-        if(li.innerHTML.includes(document.getElementById("wordFilter").value)){
-            li.classList.remove("hidden");
-        }else{
-            li.classList.add("hidden");
-        }
-    }
-})
-
-async function load(){
+async function loadGlobalSettings(){
     const response = await fetch(`/load`, {
         method: "GET",
     });
@@ -157,13 +91,13 @@ async function load(){
             option.classList.add("bankOption")
             option.value = bank.uuid;
             option.innerHTML = bank.name;
-            dropdown.append(option);
+            SELECT_BANK_DROPDOWN.append(option);
         }else{
             // update the display name of an existing element
             existingOption.innerHTML = bank.name;
         }
     }
-    await populateWordBankData();
+    await loadWordBankSettings();
 }
 
 async function saveGlobalSetting(key, value){
@@ -180,13 +114,33 @@ async function saveGlobalSetting(key, value){
     if(key === "port"){
         window.location.href = `http://localhost:${value}/`
     }
-    await load();
+    await loadGlobalSettings();
 }
 
 for(const setting of document.getElementsByClassName('globalSetting')){
     setting.addEventListener("change", async () => {
         await saveGlobalSetting(setting.id, setting.value);
     });
+}
+
+async function loadWordBankSettings(){
+    console.log("Populating for word bank:" + getSelectedWordBank().value);
+    const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    });
+    const bank = await response.json();
+    for(const property in bank){
+        const elem = document.getElementById(property);
+        if(elem){
+            elem.value = bank[property];
+        }
+    }
+    document.getElementById("path").innerHTML = bank.path ? abridgeString(bank.path, 32) : "...";
+    await getWordListForWordBank(bank.uuid);
+    updateSpeakUrl();
 }
 
 async function saveBankSetting(key, value){
@@ -201,7 +155,7 @@ async function saveBankSetting(key, value){
         },
         body: JSON.stringify(data)
     });
-    await load();
+    await loadGlobalSettings();
 }
 
 for(const setting of document.getElementsByClassName('bankSetting')){
@@ -210,12 +164,116 @@ for(const setting of document.getElementsByClassName('bankSetting')){
     });
 }
 
-document.getElementById("directorySelect").addEventListener('click', async () => {
+/**
+ * ===== Elements =====
+ */
+const SELECT_BANK_DROPDOWN = document.getElementById('selectDropdown');
+const SPEAK_COMMAND_INPUT = document.getElementById('speak');
+const SPEAK_COMMAND_BUTTON = document.getElementById('speakUrl');
+const SPEAK_COMMAND_URL = document.getElementById('speakButton');
+const BROWSER_SOURCE_URL = document.getElementById('source');
+const CREATE_BANK_BUTTON = document.getElementById('createButton');
+const DELETE_BANK_BUTTON = document.getElementById('deleteButton');
+const REFRESH_BANK_BUTTON = document.getElementById("wordRefresh");
+const COPY_BANK_BUTTON = document.getElementById("wordCopy");
+const BANK_WORD_FILTER = document.getElementById("wordFilter");
+const BANK_WORD_LIST = document.getElementById("wordList");
+const DIRECTORY_SELECT_BUTTON = document.getElementById("directorySelect");
+/**
+ * ===== Electron API =====
+ */
+// Speak from the UI, rather than a browser source
+window.electronAPI.onSpeakCommand((message) => {
+    SPEAKER_QUEUE.push(message);
+});
+
+window.electronAPI.onLog((message) => {
+    document.getElementById('ticker').innerHTML = message;
+    console.log(message);
+});
+
+/**
+ * ===== Event Listener Hookups =====
+ */
+
+BROWSER_SOURCE_URL.value = `http://${window.location.host}/speaker`;
+SELECT_BANK_DROPDOWN.addEventListener('change', async () => {
+    await loadWordBankSettings();
+});
+
+CREATE_BANK_BUTTON.addEventListener('click', async () => {
+    const response = await fetch("/create/bank", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    });
+    await loadGlobalSettings();
+    SELECT_BANK_DROPDOWN.value = SELECT_BANK_DROPDOWN.options[SELECT_BANK_DROPDOWN.options.length - 1].value;
+    await loadWordBankSettings()
+});
+
+DELETE_BANK_BUTTON.addEventListener('click', async () => {
+    const data = {
+        uuid: getSelectedWordBank().value
+    };
+    const response = await fetch("/delete/bank", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data)
+    });
+    await loadGlobalSettings();
+});
+
+REFRESH_BANK_BUTTON.addEventListener('click', async () => {
+    getWordListForWordBank(getSelectedWordBank().value);
+});
+
+COPY_BANK_BUTTON.addEventListener('click', async () => {
+    const response = await fetch(`/banks/${getSelectedWordBank().value}/words`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    });
+    const bank = await response.json();
+    navigator.clipboard.writeText(
+        JSON.stringify(bank, null, 2)
+    );
+});
+
+BANK_WORD_FILTER.addEventListener('change', async () => {
+    for(const li of BANK_WORD_LIST.querySelectorAll('li')){
+        if(li.innerHTML.includes(BANK_WORD_FILTER.value)){
+            li.classList.remove("hidden");
+        }else{
+            li.classList.add("hidden");
+        }
+    }
+});
+
+DIRECTORY_SELECT_BUTTON.addEventListener('click', async () => {
     const dir = await window.electronAPI.selectDirectory();
     if(dir){
         await saveBankSetting('path', dir);
     }
+});
+
+SPEAK_COMMAND_INPUT.addEventListener('change', async () => {
+    updateSpeakUrl();
 })
+
+SPEAK_COMMAND_BUTTON.addEventListener('click', async () => {
+    const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${SPEAK_COMMAND_INPUT.value}`, {
+        method: "GET",
+    });
+});
+
+/**
+ * ===== Generic Component Hookups =====
+ */
 
 function openTab(tabName){
     const tabs = document.getElementsByClassName('contentTab');
@@ -244,30 +302,14 @@ for(const button of document.getElementsByClassName('copy')){
     })
 }
 
-const speakInput = document.getElementById('speak');
-function updateSpeakUrl(){
-    document.getElementById("speakUrl").value = `${window.location.href}speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`;
-}
-
-speakInput.addEventListener('change', async () => {
-    updateSpeakUrl();
-})
-
-document.getElementById('speakButton').addEventListener('click', async () => {
-    console.log(`Saying: ${speakInput.value}`);
-    const response = await fetch(`/speak?bank=${getSelectedWordBank().value}&phrase=${speakInput.value}`, {
-        method: "GET",
+for(const slider of document.getElementsByClassName('slider')){
+    const values = slider.parentElement.querySelectorAll('.sliderValue');
+    slider.addEventListener("input", async () => {
+        for(const value of values){
+            value.innerHTML = `${(slider.value * 100).toFixed(0)}%`;
+        }
     });
-});
-
-// Speak from the UI, rather than a browser source
-window.electronAPI.onSpeakCommand((message) => {
-    SPEAKER_QUEUE.push(message);
-});
-
-load();
-openTab('mainTab');
-checkVersion();
+}
 
 const tooltips = {
     source: "This URL is for the Speaker, which plays the spoken audio.\nUse it as a Browser Source in OBS.",
@@ -280,3 +322,11 @@ for(const tooltip of document.getElementsByClassName('tooltip')){
         tooltip.title = text;
     }
 }
+
+/**
+ * ===== Execution =====
+ */
+
+loadGlobalSettings();
+openTab('mainTab');
+checkVersion();

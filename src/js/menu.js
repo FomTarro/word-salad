@@ -26,7 +26,7 @@ const template = (shell, getPort) => [
         : []),
     {
         role: 'fileMenu',
-        label: 'File',
+        label: 'Navigation',
         submenu: [
             isMac ? { role: 'close' } : { role: 'quit' }
         ]

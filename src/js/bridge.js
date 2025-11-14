@@ -4,8 +4,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectDirectory: async(context) => {
         return ipcRenderer.sendSync("selectDirectory");
     },
+
+    onSpeakStart: async(context) => {
+        return ipcRenderer.sendSync("onSpeakStart");
+    },
+
+    onSpeakStop: async(context) => {
+        return ipcRenderer.sendSync("onSpeakStop");
+    },
+
     onSpeakCommand: async(callback) => {
         return ipcRenderer.on("onSpeakCommand", (event, ...args) => callback(...args))
+    },
+    onLog: async(callback) => {
+        return ipcRenderer.on("onLog", (event, ...args) => callback(...args))
     }
 });
 

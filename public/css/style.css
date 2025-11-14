@@ -12,11 +12,18 @@ body {
     height: 100vh;
     margin: 0;
     padding: 0.5em;
+    padding-top: 0em;
     box-sizing: border-box;
 }
 
 hr {
     width: 100%;
+    margin: 0;
+}
+
+.vr {
+    width: 0;
+    height: 100%;
     margin: 0;
 }
 
@@ -69,6 +76,7 @@ button, input, select{
     min-width: 1rem;
     max-height: 1rem;
     align-content: center;
+    margin: 0;
 }
 
 input:read-only{
@@ -83,6 +91,12 @@ input[type="text"]{
 input[type="number"]{
     width: 4rem;
     flex-grow: 0;
+}
+
+input[type="range"]{
+    padding: 0;
+    border: 0;
+    margin: calc(0.25em + 2px) 0;
 }
 
 button {
@@ -188,9 +202,11 @@ code {
     overflow-x: hidden;
 }
 
-#saveIndicator {
-    font-size: 0.5em;
-    height: 0.5em;
+#ticker {
+    font-size: 1em;
+    height: 1em;
+    background-color: white;
+    font-family: monospace;
 }
 
 .tooltip {
