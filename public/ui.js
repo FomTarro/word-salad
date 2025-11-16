@@ -179,17 +179,17 @@ const COPY_BANK_BUTTON = document.getElementById("wordCopy");
 const BANK_WORD_FILTER = document.getElementById("wordFilter");
 const BANK_WORD_LIST = document.getElementById("wordList");
 const DIRECTORY_SELECT_BUTTON = document.getElementById("directorySelect");
+const ELECTRON_API = window.electronAPI;
 /**
  * ===== Electron API =====
  */
 // Speak from the UI, rather than a browser source
-window.electronAPI.onSpeakCommand((message) => {
+ELECTRON_API.onSpeakCommand((message) => {
     SPEAKER_QUEUE.push(message);
 });
 
-window.electronAPI.onLog((message) => {
+ELECTRON_API.onLog((message) => {
     document.getElementById('ticker').innerHTML = message;
-    console.log(message);
 });
 
 /**
@@ -321,6 +321,27 @@ for(const tooltip of document.getElementsByClassName('tooltip')){
     if(text){
         tooltip.title = text;
     }
+}
+
+/**
+ * ===== Logging =====
+ */
+const originalLog = console.log;
+console.log = (msg) => {
+    ELECTRON_API.log(msg);
+    originalLog(msg);
+}
+
+const originalWarn = console.warn;
+console.warn = (msg) => {
+    ELECTRON_API.warn(msg);
+    originalWarn(msg);
+}
+
+const originalError = console.error;
+console.error = (msg) => {
+    ELECTRON_API.error(msg);
+    originalError(msg);
 }
 
 /**

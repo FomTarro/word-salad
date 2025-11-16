@@ -33,10 +33,101 @@ const NEW_BANK = 'New Word Bank'
 /**
  * @callback OnSpeakCallback
  * @param {Command} command - The speak command passed to the callback.
+ * @returns {void}
  */
 
 /** @type {OnSpeakCallback[]} */
 const ON_SPEAK_CALLBACKS = [];
+
+
+/**
+ * @callback OnLogCallback
+ * @param {string} message - The message to log.
+ * @returns {void}
+ */
+
+const originalLog = console.log;
+/** @type {OnLogCallback[]} */
+const ON_LOG_CALLBACKS = [];
+const originalWarn = console.warn;
+/** @type {OnLogCallback[]} */
+const ON_WARN_CALLBACKS = [];
+const originalError = console.error;
+/** @type {OnLogCallback[]} */
+const ON_ERROR_CALLBACKS = [];
+
+const formatMessage = (msg) => {
+    const timestamp = Date.now();
+    const dateObject = new Date(timestamp);
+    const isoString = dateObject.toISOString();
+    msg = typeof msg === 'object' ? JSON.stringify(msg) : msg;
+    return `[${isoString}] ${msg}`;
+}
+
+const LOG_FILE_PATH = path.join(SIB_DIR ,'logs');
+const CLIENT_FORMAT = '[CLIENT]';
+const SERVER_FORMAT = '[SERVER]';
+const configureLogger = () => {
+    if(!fs.existsSync(LOG_FILE_PATH)){
+        fs.mkdirSync(LOG_FILE_PATH);
+    }
+
+    const timestamp = Date.now();
+    const dateObject = new Date(timestamp);
+    const isoString = dateObject.toISOString();
+    const formatted = isoString
+    .replace(/:/g, '') // Remove colons
+    .replace(/\./g, '') // Remove periods (for milliseconds)
+    .replace(/T/g, '_') // Replace 'T' with underscore
+    .replace(/Z/g, ''); // Remove 'Z' (Zulu time indicator)
+    const LOG_FILE_NAME = `${formatted}_log.txt`;
+
+    const appendLog = (msg) => {
+        fs.appendFile(path.join(LOG_FILE_PATH, LOG_FILE_NAME), msg + '\n', (err) => {
+            if(err){
+                originalError(err)
+            }
+        });
+    }
+
+    ON_LOG_CALLBACKS.length = 0;
+    ON_LOG_CALLBACKS.push(originalLog);
+    ON_LOG_CALLBACKS.push(appendLog);
+    console.log = (msg) => {
+        const formatted = `${SERVER_FORMAT} [INFO] ${formatMessage(msg)}`;
+        for(const callback of ON_LOG_CALLBACKS){
+            callback(formatted);
+        }
+    }
+    ON_WARN_CALLBACKS.length = 0;;
+    ON_WARN_CALLBACKS.push(originalWarn);
+    ON_WARN_CALLBACKS.push(appendLog);
+    console.warn = (msg) => {
+        const formatted = `${SERVER_FORMAT} [WARN] ${formatMessage(msg)}`;
+        for(const callback of ON_WARN_CALLBACKS){
+            callback(formatted);
+        }
+    }
+    ON_ERROR_CALLBACKS.length = 0;;
+    ON_ERROR_CALLBACKS.push(originalError);
+    ON_ERROR_CALLBACKS.push(appendLog);
+    console.error = (msg) => {
+        const formatted = `${SERVER_FORMAT} [ERR!] ${formatMessage(msg)}`;
+        for(const callback of ON_ERROR_CALLBACKS){
+            callback(formatted);
+        }
+    }
+    const logs = fs.readdirSync(LOG_FILE_PATH).sort().reverse();
+    const MAX_LOGS = 5;
+    for(let i = logs.length; i > MAX_LOGS; i--){
+        try{
+            fs.rmSync(path.join(LOG_FILE_PATH, logs[i-1]));
+            console.log(`Deleting log file: ${logs[i-1]}`);
+        }catch(e){
+            originalError(e);
+        }
+    }
+}
 
 const SETTINGS_FILE_PATH = path.join(SIB_DIR ,`settings.json`);
 let SETTINGS = {
@@ -49,7 +140,7 @@ let SETTINGS = {
 }
 
 const save = (data) => {
-    console.log("Saving...");
+    console.log('Saving...');
     SETTINGS = merge(SETTINGS, data)
     SETTINGS.banks = [...[...BANK_MAP.values()].map(val =>  { 
         return {
@@ -64,7 +155,7 @@ const save = (data) => {
 }
 
 const loadGlobalSettings = () => {
-    console.log("Loading...");
+    console.log('Loading...');
     const data = fs.existsSync(SETTINGS_FILE_PATH) ? JSON.parse(fs.readFileSync(SETTINGS_FILE_PATH).toString()) : {};
     SETTINGS = merge(SETTINGS, data);
     const banks = [...SETTINGS.banks];
@@ -156,11 +247,11 @@ const launchBackend = () => {
     });
 
     expressServer.get(['/readme'], async (req, res) => {
-        const readme = fs.readFileSync(path.join(PUB_DIR, "..", "README.md")).toString();
+        const readme = fs.readFileSync(path.join(PUB_DIR, '..', 'README.md')).toString();
         const md = new showdown.Converter({
             metadata: false,
         });
-        res.setHeader("Content-Type", "text/html");
+        res.setHeader('Content-Type', 'text/html');
         res.status(200).send(
             `<html>
                 <link rel="stylesheet" type="text/css" href='/css/readme.css'>
@@ -172,7 +263,7 @@ const launchBackend = () => {
     expressServer.get(['/version',], async (req, res) => {
         let url = undefined;
         const newVersion = await fetch('https://www.skeletom.net/word-salad/version', {
-            method: "GET",
+            method: 'GET',
         });
         if(newVersion.status >= 200 && newVersion.status < 400){
             const parsed = await newVersion.json();
@@ -194,10 +285,10 @@ const launchBackend = () => {
             if(req.body.port){
                 res.status(200).send();
                 // reboot backend
-                console.log("closing http server...");
+                console.log('Closing HTTP server...');
                 server.closeAllConnections();
                 server.close(async () => {
-                    console.log("closing websocket server...");
+                    console.log('Closing Websocket server...');
                     wsServer.close(async () => {
                         launchBackend();
                     });
@@ -321,7 +412,7 @@ const launchBackend = () => {
 }
 
 const launchFrontend = () => {
-    const powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+    const powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
     app.whenReady().then(() => {
         // Electron API
         ipcMain.on('selectDirectory', async (event) => {
@@ -331,6 +422,30 @@ const launchFrontend = () => {
             }else{
                 event.returnValue = undefined;
             }
+        });
+
+        ipcMain.on('log', async (event, msg) => {
+            const formatted = `${CLIENT_FORMAT} [INFO] ${formatMessage(msg)}`;
+            for(const callback of ON_LOG_CALLBACKS){
+                callback(formatted);
+            }
+            event.returnValue = undefined;
+        });
+
+        ipcMain.on('warn', async (event, msg) => {
+            const formatted = `${CLIENT_FORMAT} [WARN] ${formatMessage(msg)}`;
+            for(const callback of ON_WARN_CALLBACKS){
+                callback(formatted);
+            }
+            event.returnValue = undefined;
+        });
+
+        ipcMain.on('error', async (event, msg) => {
+            const formatted = `${CLIENT_FORMAT} [ERR!] ${formatMessage(msg)}`;
+            for(const callback of ON_ERROR_CALLBACKS){
+                callback(formatted);
+            }
+            event.returnValue = undefined;
         });
 
         // Toolbar
@@ -348,7 +463,7 @@ const launchFrontend = () => {
                 preload: path.join(SRC_DIR, 'js', 'bridge.js'),
                 backgroundThrottling: false
             }
-        })
+        });
         win.webContents.setWindowOpenHandler(({ url }) => {
             // if(url.startsWith('http://localhost')){
             //     return { action: 'allow' }
@@ -356,36 +471,28 @@ const launchFrontend = () => {
             shell.openExternal(url);
             return { action: 'deny' };
         });
+
         ON_SPEAK_CALLBACKS.push((command) => {
-            win.webContents.send("onSpeakCommand", command);
+            win.webContents.send('onSpeakCommand', command);
+        });
+        // Pipe console logging to the frontend,
+        // unless the logs originated from the frontend
+        ON_LOG_CALLBACKS.push((msg) => {
+            if(!msg.includes(CLIENT_FORMAT)){
+                win.webContents.send('onLog', msg);
+            }
+        });
+        ON_WARN_CALLBACKS.push((msg) => {
+            if(!msg.includes(CLIENT_FORMAT)){
+                win.webContents.send('onLog', msg);
+            }
+        });
+        ON_ERROR_CALLBACKS.push((msg) => {
+            if(!msg.includes(CLIENT_FORMAT)){
+                win.webContents.send('onLog', msg);
+            }
         });
         win.loadURL(`http://localhost:${SETTINGS.port}/`);
-        // Pipe console logging to the frontend
-        const originalLog = console.log;
-        const originalWarn = console.warn;
-        const originalError = console.error;
-        const formatMessage = (msg) => {
-            const timestamp = Date.now();
-            const dateObject = new Date(timestamp);
-            const isoString = dateObject.toISOString();
-            return `[${isoString}] ${msg}`;
-        }
-        console.log = (msg) => {
-            const formatted = `[INFO] ${formatMessage(msg)}`;
-            win.webContents.send("onLog", formatted);
-            originalLog(formatted);
-        }
-
-        console.warn = (msg) => {
-            const formatted = `[WARN] ${formatMessage(msg)}`;
-            win.webContents.send("onLog", formatted);
-            originalWarn(formatted);
-        }
-        console.error = (msg) => {
-            const formatted = `[ERROR] ${formatMessage(msg)}`;
-            win.webContents.send("onLog", formatted);
-            originalError(formatted);
-        }
     });
 
     app.on('window-all-closed', () => {
@@ -395,6 +502,7 @@ const launchFrontend = () => {
 }
 
 const launchApp = async () => {
+    configureLogger();
     launchBackend();
     launchFrontend();
 }

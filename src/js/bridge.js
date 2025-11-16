@@ -5,6 +5,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.sendSync("selectDirectory");
     },
 
+    log: async(context) => {
+        return ipcRenderer.sendSync("log", context);
+    },
+
+    warn: async(context) => {
+        return ipcRenderer.sendSync("warn", context);
+    },
+
+    error: async(context) => {
+        return ipcRenderer.sendSync("error", context);
+    },
+
     onSpeakStart: async(context) => {
         return ipcRenderer.sendSync("onSpeakStart");
     },
