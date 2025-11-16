@@ -3,21 +3,21 @@ const SPEAKER_QUEUE = [];
 
 function speak(request) {
     const chunks = []
-    const ready = [];
-    const setReady = () => {
-        ready.push(true);
-        if (ready.length == chunks.length) {
-            chunks[0].play();
-        }
-    }
+    // const ready = [];
+    // const setReady = () => {
+    //     ready.push(true);
+    //     if (ready.length == chunks.length) {
+    //         chunks[0].play();
+    //     }
+    // }
     console.log("Processing sentence...");
     for (const command of request.commands) {
         // if it's a word file
         if (command.path) {
             const clip = new Audio(`./banks/${request.bank}/word?word=${command.word}&path=${command.path}`);
-            clip.oncanplaythrough = () => {
-                setReady();
-            }
+            // clip.oncanplaythrough = () => {
+            //     setReady();
+            // }
             chunks.push({
                 onended() {
                     console.warn("OnEnded Callback not initialized.")
@@ -25,7 +25,9 @@ function speak(request) {
                 },
                 play() {
                     clip.onended = this.onended;
-                    clip.play().catch((r) => { 
+                    clip.play().then(() => {
+                        IS_SPEAKING = true;
+                    }).catch((r) => { 
                         console.error(r);
                         clip.onended(); 
                     });
@@ -42,7 +44,7 @@ function speak(request) {
                     setTimeout(this.onended, command.delay ?? 250);
                 }
             });
-            setReady();
+            // setReady();
         }
     }
 
@@ -58,6 +60,7 @@ function speak(request) {
                 }
             }
         }
+        chunks[0].play();
     }
 }
 

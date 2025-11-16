@@ -47,7 +47,7 @@ async function getWordListForWordBank(bankUuid) {
     for(const word of body){
         const li = document.createElement("li");
         li.innerHTML = word;
-        list.append(li);
+        BANK_WORD_LIST.append(li);
         li.addEventListener('click', () => {
             SPEAK_COMMAND_INPUT.value = `${SPEAK_COMMAND_INPUT.value} ${word}`.trim();
             var event = new Event('change')
@@ -169,8 +169,8 @@ for(const setting of document.getElementsByClassName('bankSetting')){
  */
 const SELECT_BANK_DROPDOWN = document.getElementById('selectDropdown');
 const SPEAK_COMMAND_INPUT = document.getElementById('speak');
-const SPEAK_COMMAND_BUTTON = document.getElementById('speakUrl');
-const SPEAK_COMMAND_URL = document.getElementById('speakButton');
+const SPEAK_COMMAND_BUTTON = document.getElementById('speakButton');
+const SPEAK_COMMAND_URL = document.getElementById('speakUrl');
 const BROWSER_SOURCE_URL = document.getElementById('source');
 const CREATE_BANK_BUTTON = document.getElementById('createButton');
 const DELETE_BANK_BUTTON = document.getElementById('deleteButton');

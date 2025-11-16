@@ -360,14 +360,31 @@ const launchFrontend = () => {
             win.webContents.send("onSpeakCommand", command);
         });
         win.loadURL(`http://localhost:${SETTINGS.port}/`);
-        const originalConsole = console.log;
-        console.log = (msg) => {
+        // Pipe console logging to the frontend
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const formatMessage = (msg) => {
             const timestamp = Date.now();
             const dateObject = new Date(timestamp);
             const isoString = dateObject.toISOString();
-            msg = `[${isoString}] ${msg}`
-            win.webContents.send("onLog", msg);
-            originalConsole(msg);
+            return `[${isoString}] ${msg}`;
+        }
+        console.log = (msg) => {
+            const formatted = `[INFO] ${formatMessage(msg)}`;
+            win.webContents.send("onLog", formatted);
+            originalLog(formatted);
+        }
+
+        console.warn = (msg) => {
+            const formatted = `[WARN] ${formatMessage(msg)}`;
+            win.webContents.send("onLog", formatted);
+            originalWarn(formatted);
+        }
+        console.error = (msg) => {
+            const formatted = `[ERROR] ${formatMessage(msg)}`;
+            win.webContents.send("onLog", formatted);
+            originalError(formatted);
         }
     });
 
