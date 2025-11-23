@@ -54,7 +54,7 @@ async function getWordListForWordBank(bankUuid) {
             SPEAK_COMMAND_INPUT.dispatchEvent(event);
         })
     }
-    document.getElementById("wordCount").innerHTML = `(${body.length} words total)`;
+    document.getElementById("wordCount").innerHTML = `(${body.length})`;
 }
 
 function updateSpeakUrl(){
@@ -64,57 +64,65 @@ function updateSpeakUrl(){
 /**
  * ===== Saving and Loading settings ====
  */
-
+let LOADING_GLOBAL = false;
 async function loadGlobalSettings(){
-    const response = await fetch(`/load`, {
-        method: "GET",
-    });
-    const settings = await response.json()
-    for(const property in settings){
-        const elem = document.getElementById(property);
-        if(elem){
-            elem.value = settings[property];
+    if(!LOADING_GLOBAL){
+        LOADING_GLOBAL = true;
+        const response = await fetch(`/load`, {
+            method: "GET",
+        });
+        const settings = await response.json()
+        for(const property in settings){
+            const elem = document.getElementById(property);
+            if(elem){
+                elem.value = settings[property];
+                var event = new Event('change');
+                elem.dispatchEvent(event);
+            }
         }
-    }
-    // prune deleted word banks
-    for(const option of document.getElementsByClassName("bankOption")){
-        if(!settings.banks.find(b => b.uuid === option.value)){
-            option.remove();
+        // prune deleted word banks
+        for(const option of document.getElementsByClassName("bankOption")){
+            if(!settings.banks.find(b => b.uuid === option.value)){
+                option.remove();
+            }
         }
-    }
-    // make/update existing word banks
-    for(const bank of settings.banks){
-        const existingOption = document.querySelector(`[value="${bank.uuid}"]`);
-        if(!existingOption){
-            // create new HTML element using the name/UUID/path found here
-            const option = document.createElement("option");
-            option.classList.add("bankOption")
-            option.value = bank.uuid;
-            option.innerHTML = bank.name;
-            SELECT_BANK_DROPDOWN.append(option);
-        }else{
-            // update the display name of an existing element
-            existingOption.innerHTML = bank.name;
+        // make/update existing word banks
+        for(const bank of settings.banks){
+            const existingOption = document.querySelector(`[value="${bank.uuid}"]`);
+            if(!existingOption){
+                // create new HTML element using the name/UUID/path found here
+                const option = document.createElement("option");
+                option.classList.add("bankOption")
+                option.value = bank.uuid;
+                option.innerHTML = bank.name;
+                SELECT_BANK_DROPDOWN.append(option);
+            }else{
+                // update the display name of an existing element
+                existingOption.innerHTML = bank.name;
+            }
         }
+        await loadWordBankSettings();
+        LOADING_GLOBAL = false;
     }
-    await loadWordBankSettings();
 }
 
 async function saveGlobalSetting(key, value){
-    const data = {
-        [key] : value
-    };
-    const response = await fetch("/save/global", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data)
-    });
-    if(key === "port"){
-        window.location.href = `http://localhost:${value}/`
+    if(!LOADING_GLOBAL){
+        const data = {
+            [key] : value
+        };
+        const response = await fetch("/save/global", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data)
+        });
+        if(key === "port"){
+            window.location.href = `http://localhost:${value}/`
+        }
+        await loadGlobalSettings();
     }
-    await loadGlobalSettings();
 }
 
 for(const setting of document.getElementsByClassName('globalSetting')){
@@ -123,39 +131,48 @@ for(const setting of document.getElementsByClassName('globalSetting')){
     });
 }
 
+let LOADING_WORD_BANK = false;
 async function loadWordBankSettings(){
-    console.log("Populating for word bank:" + getSelectedWordBank().value);
-    const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
+    if(!LOADING_WORD_BANK){
+        LOADING_WORD_BANK = true;
+        console.log("Populating for word bank:" + getSelectedWordBank().value);
+        const response = await fetch(`/banks/${getSelectedWordBank().value}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        });
+        const bank = await response.json();
+        for(const property in bank){
+            const elem = document.getElementById(property);
+            if(elem){
+                elem.value = bank[property];
+                var event = new Event('change');
+                elem.dispatchEvent(event);
+            }
         }
-    });
-    const bank = await response.json();
-    for(const property in bank){
-        const elem = document.getElementById(property);
-        if(elem){
-            elem.value = bank[property];
-        }
+        document.getElementById("path").innerHTML = bank.path ? abridgeString(bank.path, 32) : "...";
+        await getWordListForWordBank(bank.uuid);
+        updateSpeakUrl();
+        LOADING_WORD_BANK = false;
     }
-    document.getElementById("path").innerHTML = bank.path ? abridgeString(bank.path, 32) : "...";
-    await getWordListForWordBank(bank.uuid);
-    updateSpeakUrl();
 }
 
 async function saveBankSetting(key, value){
-    const data = {
-        uuid: getSelectedWordBank().value,
-        [key]: value,
-    };
-    const response = await fetch("/save/bank", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data)
-    });
-    await loadGlobalSettings();
+    if(!LOADING_WORD_BANK){
+        const data = {
+            uuid: getSelectedWordBank().value,
+            [key]: value,
+        };
+        const response = await fetch("/save/bank", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data)
+        });
+        await loadGlobalSettings();
+    }
 }
 
 for(const setting of document.getElementsByClassName('bankSetting')){
@@ -179,17 +196,48 @@ const COPY_BANK_BUTTON = document.getElementById("wordCopy");
 const BANK_WORD_FILTER = document.getElementById("wordFilter");
 const BANK_WORD_LIST = document.getElementById("wordList");
 const DIRECTORY_SELECT_BUTTON = document.getElementById("directorySelect");
+const DEBUG_LOG_LIST = document.getElementById("logList");
+const DEBUG_LOG_BUTTON = document.getElementById("logButton");
 const ELECTRON_API = window.electronAPI;
 /**
  * ===== Electron API =====
  */
+
+const appendLog = (msg) => {
+    const li = document.createElement("li");
+    li.innerHTML = msg;
+    const firstChild = DEBUG_LOG_LIST.firstChild;
+    DEBUG_LOG_LIST.insertBefore(li, firstChild);
+}
+
+const originalLog = console.log;
+console.log = (msg) => {
+    ELECTRON_API.log(msg);
+    appendLog(msg);
+    originalLog(msg);
+}
+
+const originalWarn = console.warn;
+console.warn = (msg) => {
+    ELECTRON_API.warn(msg);
+    appendLog(msg);
+    originalWarn(msg);
+}
+
+const originalError = console.error;
+console.error = (msg) => {
+    ELECTRON_API.error(msg);
+    appendLog(msg);
+    originalError(msg);
+}
+
 // Speak from the UI, rather than a browser source
 ELECTRON_API.onSpeakCommand((message) => {
-    SPEAKER_QUEUE.push(message);
+    handleSpeakRequest(message)
 });
 
 ELECTRON_API.onLog((message) => {
-    document.getElementById('ticker').innerHTML = message;
+    appendLog(message)
 });
 
 /**
@@ -255,7 +303,7 @@ BANK_WORD_FILTER.addEventListener('change', async () => {
 });
 
 DIRECTORY_SELECT_BUTTON.addEventListener('click', async () => {
-    const dir = await window.electronAPI.selectDirectory();
+    const dir = await ELECTRON_API.selectDirectory();
     if(dir){
         await saveBankSetting('path', dir);
     }
@@ -271,25 +319,43 @@ SPEAK_COMMAND_BUTTON.addEventListener('click', async () => {
     });
 });
 
+DEBUG_LOG_BUTTON.addEventListener('click', async () => {
+    ELECTRON_API.openLogsDirectory();
+})
+
 /**
  * ===== Generic Component Hookups =====
  */
 
 function openTab(tabName){
-    const tabs = document.getElementsByClassName('contentTab');
-    for(const tab of tabs){
+    const tab = document.getElementById(tabName);
+    const tabButtons = tab.parentElement.querySelector('.tabButtonRow').querySelectorAll('.tabButton');
+    for(const button of tabButtons){
+        const target = button.getAttribute('target');
+        const tab = document.getElementById(target);
         if(tab.id !== tabName){
             tab.classList.add('hidden')
+            button.classList.add('tabButtonClosed');
         }else{
             tab.classList.remove('hidden');
+            button.classList.remove('tabButtonClosed');
         }
     }
+
 }
 
 for(const button of document.getElementsByClassName('tabButton')){
     button.addEventListener("click", async () => {
         openTab(button.getAttribute('target'));
     });
+}
+
+for(const row of document.getElementsByClassName('tabButtonRow')){
+    for(const button of row.getElementsByClassName('tabButton')){
+        button.addEventListener("click", async () => {
+            openTab(button.getAttribute('target'));
+        });
+    }
 }
 
 for(const button of document.getElementsByClassName('copy')){
@@ -309,6 +375,11 @@ for(const slider of document.getElementsByClassName('slider')){
             value.innerHTML = `${(slider.value * 100).toFixed(0)}%`;
         }
     });
+    slider.addEventListener("change", async () => {
+        for(const value of values){
+            value.innerHTML = `${(slider.value * 100).toFixed(0)}%`;
+        }
+    });
 }
 
 const tooltips = {
@@ -324,30 +395,10 @@ for(const tooltip of document.getElementsByClassName('tooltip')){
 }
 
 /**
- * ===== Logging =====
- */
-const originalLog = console.log;
-console.log = (msg) => {
-    ELECTRON_API.log(msg);
-    originalLog(msg);
-}
-
-const originalWarn = console.warn;
-console.warn = (msg) => {
-    ELECTRON_API.warn(msg);
-    originalWarn(msg);
-}
-
-const originalError = console.error;
-console.error = (msg) => {
-    ELECTRON_API.error(msg);
-    originalError(msg);
-}
-
-/**
  * ===== Execution =====
  */
 
 loadGlobalSettings();
-openTab('mainTab');
+openTab('mainContent')
+openTab('bankSettingsContent')
 checkVersion();

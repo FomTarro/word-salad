@@ -9,7 +9,7 @@ function createSocket() {
         console.log(message.data)
         const data = JSON.parse(message.data);
         if (data.commands && data.bank) {
-            SPEAKER_QUEUE.push(data);
+           handleSpeakRequest(data);
         }
     }
     socket.onclose = () => {

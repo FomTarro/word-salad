@@ -5,6 +5,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.sendSync("selectDirectory");
     },
 
+    openLogsDirectory: async(context) => {
+        return ipcRenderer.sendSync("openLogsDirectory");
+    },
+
+
     log: async(context) => {
         return ipcRenderer.sendSync("log", context);
     },

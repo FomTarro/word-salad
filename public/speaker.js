@@ -2,25 +2,29 @@ let IS_SPEAKING = false;
 const SPEAKER_QUEUE = [];
 
 function speak(request) {
+    IS_SPEAKING = true;
     const chunks = []
-    // const ready = [];
-    // const setReady = () => {
-    //     ready.push(true);
-    //     if (ready.length == chunks.length) {
-    //         chunks[0].play();
-    //     }
-    // }
-    console.log("Processing sentence...");
+    const ready = [];
+    const setReady = () => {
+        ready.push(true);
+        // once all clips are loaded, begin playtrhough of first clip
+        if (ready.length == chunks.length) {
+            chunks[0].play();
+        }
+    }
+    console.log(`[${request.uuid}] Speak request queue length: ${SPEAKER_QUEUE.length}`);
+    console.log(`[${request.uuid}] Processing sentence: ${request.phrase}`);
     for (const command of request.commands) {
         // if it's a word file
         if (command.path) {
             const clip = new Audio(`./banks/${request.bank}/word?word=${command.word}&path=${command.path}`);
-            // clip.oncanplaythrough = () => {
-            //     setReady();
-            // }
+            clip.oncanplaythrough = () => {
+                // clip is loaded, flag it as ready
+                setReady();
+            }
             chunks.push({
                 onended() {
-                    console.warn("OnEnded Callback not initialized.")
+                    console.warn(`[${request.uuid}] OnEnded Callback not initialized.`)
                     IS_SPEAKING = false;
                 },
                 play() {
@@ -28,7 +32,7 @@ function speak(request) {
                     clip.play().then(() => {
                         IS_SPEAKING = true;
                     }).catch((r) => { 
-                        console.error(r);
+                        console.error(`[${request.uuid}] Error: ${r}`);
                         clip.onended(); 
                     });
                 }
@@ -37,45 +41,41 @@ function speak(request) {
         } else {
             chunks.push({
                 onended() {
-                    console.warn("OnEnded Callback not initialized.")
+                    console.warn(`[${request.uuid}] OnEnded Callback not initialized.`)
                     IS_SPEAKING = false;
                 },
                 play() {
                     setTimeout(this.onended, command.delay ?? 250);
                 }
             });
-            // setReady();
+            setReady();
         }
     }
 
     if(chunks.length > 0){
-        console.log(`Sentence starting with ${chunks.length} parts!`);
         for (let i = 0; i < chunks.length; i++) {
+            // connect chunks such that they each play in to the next
             chunks[i].onended = () => {
                 if (i + 1 < chunks.length) {
                     chunks[i + 1].play();
                 } else {
-                    console.log("Sentence ended!");
+                    console.log(`[${request.uuid}] Ending sentence: ${request.phrase}`);
                     IS_SPEAKING = false;
+                    // start playing next sentence if there's one in the queue
+                    if(SPEAKER_QUEUE.length > 0){
+                        speak(SPEAKER_QUEUE.shift());
+                    }
                 }
             }
         }
-        chunks[0].play();
     }
 }
 
-const PARAMS = Object.fromEntries(new URLSearchParams(location.search).entries());
-const USE_QUEUE = PARAMS.queue === 'false' ? false : true;
-const PROCESSOR = setInterval(
-    () => {
-        try {
-            if (SPEAKER_QUEUE.length > 0 
-            // && (!IS_SPEAKING || !USE_QUEUE)
-            ) {
-                speak(SPEAKER_QUEUE.shift());
-            }
-        } catch (e) {
-            console.warn(e);
-        }
-    },
-100);
+function handleSpeakRequest(request){
+    console.log(`[${request.uuid}] Handling speak request...`);
+    if(!IS_SPEAKING){
+        speak(request)
+    }else{
+        SPEAKER_QUEUE.push(request);
+    }
+}

@@ -1,36 +1,58 @@
 <!DOCTYPE html>
 <html>
-    <link rel="stylesheet" type="text/css" href='/css/style.css'>
-    <div id="ticker" class="hidden">Last command: </div>
-    <body class="flex column">
+<link rel="stylesheet" type="text/css" href='/css/style.css'>
+<div id="ticker" class="hidden">Last command: </div>
+
+<body class="flex column">
+    <div>
         <div>
-            <div>
-                <label class="bold">Word Salad <span id="currentVersion">v1.2.0</span></label><span id="newVersion" class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span> 
-            </div>
-            <div>
-                <a href="/readme" target="_blank">Setup Guide</a>
+            <label class="bold">Word Salad <span id="currentVersion">v1.2.0</span></label><span id="newVersion"
+                class="hidden"> - <a id="newVersionLink" href="" target="_blank">New version available!</a></span>
+        </div>
+        <div>
+            <a href="/readme" target="_blank">Setup Guide</a>
+        </div>
+    </div>
+    <hr>
+    <div class="flex column noGap">
+        <div>
+            <div class="flex row tabButtonRow">
+                <button target="mainContent" class="tabButton"> Main </button>
+                <button target="debugContent" class="tabButton"> Debug </button>
             </div>
         </div>
-        <hr>
-        <div class="flex column">
+        <div id="debugContent" class="tab flex column">
             <div>
                 <div class="flex row">
-                        <div class="flex column noGap noGrow">
-                            <div>
-                                <label class="bold" for="port">Port</label>
-                            </div>
-                            <div>
-                                <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
-                            </div>
+                    <button class="wordButton noGrow" id="logButton">Open Logs Folder</button>
+                </div>
+            </div>
+            <div class="flex scroll frame">
+                <ul id="logList">
+
+                </ul>
+            </div>
+        </div>
+        <div id="mainContent" class="tab flex column">
+            <div>
+                <div class="flex row">
+                    <div class="flex column noGap noGrow">
+                        <div>
+                            <label class="bold" for="port">Port</label>
                         </div>
-                        <div class="flex column noGap noGrow">
-                            <div>
-                                <label class="bold" for="port">Master Volume</label>
-                            </div>
-                            <div class="flex row">
-                                <input class="globalSetting slider green" id="volumeMaster" type="range" min="0.0" max="1.0" value="1.0" step="0.05">
-                                <div class='italic sliderValue'>100%</div>
-                            </div>
+                        <div>
+                            <input class="globalSetting" id="port" type="number" min="3000" max="9999" value="8095">
+                        </div>
+                    </div>
+                    <div class="flex column noGap noGrow">
+                        <div>
+                            <label class="bold" for="port">Master Volume</label>
+                        </div>
+                        <div class="flex row">
+                            <input class="globalSetting slider" id="volumeMaster" type="range" min="0.0" max="1.0"
+                                value="1.0" step="0.05">
+                            <div class='italic sliderValue'>100%</div>
+                        </div>
                     </div>
                     <div class="flex column noGap grow hidden">
                         <div>
@@ -53,7 +75,7 @@
                     </div>
                     <div class="flex column">
                         <div class="flex row">
-                            <input id="speak" name="speak" type="text"> 
+                            <input id="speak" name="speak" type="text">
                             <button class="wordButton" id="speakButton">Speak!</button>
                         </div>
                         <div class="flex row">
@@ -80,59 +102,74 @@
                 </div>
             </div>
             <hr>
-            <div class="contentTab flex column" id="mainTab">
-                <div class="flex column">
-                    <div>
-                        <div class="flex row">
-                            <input class="bankSetting" id="name" type="text">
-                            <div>
-                                <input id="uuid" type="text" readonly>
-                                <div class="tooltip" target="uuid">?</div>
-                            </div>
-                            <button target="uuid" class="wordButton copy">Copy</button>
-                        </div>
+            <div class="flex column noGap">
+                <div>
+                    <div class="flex row tabButtonRow">
+                        <button target="bankSettingsContent" class="tabButton"> Settings </button>
+                        <button target="bankListContent" class="tabButton"> Word List <span id="wordCount">(0 words)</span></button>
+                        <!-- <button target="bankStatsContent" class="tabButton"> Statistics </button> -->
                     </div>
-                    <!-- <div>
-                        <label class="bold" for="uuid">Bank ID</label>
-                        <div class="flex row">
-                            <input id="uuid" type="text" readonly>
-                            <button target="uuid" class="copy">Copy</button>
-                        </div>
-                    </div> -->
-                    <div>
-                        <div class="flex row">
-                            <button id="directorySelect" class="wordButton">Select File Folder</button> 
-                            <span id="path" class="italic">...</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div>
-                            <label class="bold" for="delay">Punctuation Pause Duration</label>
-                        </div>
-                        <div class="flex row">
-                            <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500"> 
-                            <span class="italic">milliseconds</span>
-                        </div>
-                    </div>
+                </div>
+                <div class="flex column tab" id="bankListContent">
                     <div class="flex column">
                         <div>
-                            <span><label class="bold" for="wordList">Word List</label> - <span id="wordCount" class="italic"></span></span>
-                            <div class="flex row"> 
+                            <div class="flex row">
                                 <button id="wordRefresh" class="wordButton">Refresh</button>
-                                <button id="wordCopy" class="wordButton">Copy</button>
-                                <input class='italic' id="wordFilter" type="text" placeholder="Search word list..."> 
+                                <button id="wordCopy" class="wordButton">Copy List JSON</button>
+                                <input class='italic' id="wordFilter" type="text" placeholder="Search word list...">
                             </div>
                         </div>
                         <div class="flex scroll frame">
                             <ul id="wordList">
-                            
+
                             </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex column tab" id="bankSettingsContent">
+                    <div class="flex column scroll">
+                        <div>
+                            <div class="flex row">
+                                <input class="bankSetting" id="name" type="text">
+                                <div>
+                                    <input id="uuid" type="text" readonly>
+                                    <div class="tooltip" target="uuid">?</div>
+                                </div>
+                                <button target="uuid" class="wordButton copy">Copy</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex row">
+                                <button id="directorySelect" class="wordButton">Select File Folder</button>
+                                <span id="path" class="italic">...</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div>
+                                <label class="bold" for="delay">Punctuation Pause Duration</label>
+                            </div>
+                            <div class="flex row">
+                                <input class="bankSetting" id="delay" type="number" min="1" max="1000" value="500">
+                                <span class="italic">milliseconds</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div>
+                                <label class="bold" for="port">Relative Volume</label>
+                            </div>
+                            <div class="flex row">
+                                <input class="bankSetting slider" id="volumeRelative" type="range" min="0.0" max="1.0"
+                                    value="1.0" step="0.05">
+                                <div class='italic sliderValue'>100%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </body>
-    <script src="speaker.js"></script>
-    <script src="ui.js"></script>
+    </div>
+</body>
+<script src="speaker.js"></script>
+<script src="ui.js"></script>
+
 </html>

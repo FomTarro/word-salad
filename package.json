@@ -43,6 +43,7 @@
     "appId": "word-salad.skeletom.net",
     "productName": "Word Salad",
     "win": {
+      "icon": "build/icon.png",
       "target": [
         "portable"
       ]

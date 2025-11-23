@@ -12,13 +12,14 @@ body {
     height: 100vh;
     margin: 0;
     padding: 0.5em;
-    padding-top: 0em;
     box-sizing: border-box;
 }
 
 hr {
     width: 100%;
     margin: 0;
+    border: 1px dashed dimgray;
+    opacity: 0.75;
 }
 
 .vr {
@@ -121,7 +122,6 @@ code {
 .column {
     flex-direction: column;
     gap: 0.5rem;
-
 }
 
 .row {
@@ -134,6 +134,7 @@ code {
 
 .scroll {
     overflow-y: scroll;
+    padding-right: 0.5em;
 }
 
 .bold {
@@ -171,8 +172,33 @@ code {
     flex-shrink: 0;
 }
 
-.contentTab {
-    height: auto;
+.tab {
+    /* border-style: inset;
+    border-width: 1px; */
+    padding: 0.5em;
+    border-radius: 0;
+    border: 2px solid dimgray;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+.tabButtonRow {
+    overflow: visible;
+}
+
+.tabButton {
+    min-width: 3rem;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-width: 0;
+    /* bottom: -2px; */
+    margin-bottom: -2px;
+    z-index: 100;
+    position: relative;
+}
+
+.tabButtonClosed {
+    z-index: 0;
 }
 
 .frame {
@@ -182,6 +208,7 @@ code {
     background-color: whitesmoke;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
+    flex-grow: 1;
 }
 
 .red {

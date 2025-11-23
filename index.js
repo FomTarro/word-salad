@@ -22,6 +22,7 @@ const VERSION = version ?? '0.0.0';
  * @property {string} name
  * @property {string} path
  * @property {number} delay
+ * @property {number} volumeRelative
  * @property {Map<string, string[]} words
  */
 
@@ -178,6 +179,7 @@ const createWordBank = (bankData) => {
     const uuid = data.uuid ?? v4();
     const name = data.name ?? NEW_BANK;
     const delay = data.delay ?? 500;
+    const volumeRelative = data.volumeRelative ?? 1.0;
     console.log(`Creating word bank '${data.name}' from path: ${data.path} with UUID ${data.uuid}`)
     const dict = data.path ? parseDictionary(data.path) : new Map();
     console.log(`Bank has ${dict.size} words.`);
@@ -186,6 +188,7 @@ const createWordBank = (bankData) => {
         name: name,
         path: data.path,
         delay: delay,
+        volumeRelative,
         words: dict
     });
     return BANK_MAP.get(uuid);
@@ -389,13 +392,15 @@ const launchBackend = () => {
 
     expressServer.get(['/speak',], async (req, res) => {
         if(req.query && req.query.phrase && req.query.bank){
-            console.log(`Attempting to say: ${req.query.phrase}`);
+            const uuid = v4();
+            console.log(`[${uuid}] Request received for: ${req.query.phrase}`);
             const bank = getWordBankByUuid(req.query.bank);
             if(bank){
                 const commands = formSentence(req.query.phrase, bank.delay, bank.words);
                 for(const callback of ON_SPEAK_CALLBACKS){
                     callback({ 
                         phrase: req.query.phrase,
+                        uuid,
                         bank: bank.uuid,
                         commands: commands 
                     });
@@ -422,6 +427,11 @@ const launchFrontend = () => {
             }else{
                 event.returnValue = undefined;
             }
+        });
+
+        ipcMain.on('openLogsDirectory', async (event) => {
+            shell.openPath(LOG_FILE_PATH);
+            event.returnValue = undefined;
         });
 
         ipcMain.on('log', async (event, msg) => {
@@ -457,7 +467,7 @@ const launchFrontend = () => {
 
         // Window
         const win = new BrowserWindow({
-            width: 400,
+            width: 500,
             height: 640,
             webPreferences: {
                 preload: path.join(SRC_DIR, 'js', 'bridge.js'),
