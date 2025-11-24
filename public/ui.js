@@ -382,6 +382,20 @@ for(const slider of document.getElementsByClassName('slider')){
     });
 }
 
+for(const volume of document.getElementsByClassName('volume')){
+    const icons = volume.parentElement.querySelectorAll('.volumeIcon');
+    volume.addEventListener("input", async () => {
+        for(const icon of icons){
+            icon.innerHTML = volume.value < .85 ? (volume.value < .5 ? (volume.value < .01 ? `🔇` : `🔈`) : `🔉`) : `🔊`
+        }
+    });
+    volume.addEventListener("change", async () => {
+        for(const icon of icons){
+            icon.innerHTML = volume.value < .85 ? (volume.value < .5 ? (volume.value < .01 ? `🔇` : `🔈`) : `🔉`) : `🔊`
+        }
+    });
+}
+
 const tooltips = {
     source: "This URL is for the Speaker, which plays the spoken audio.\nUse it as a Browser Source in OBS.",
     speakUrl: "This URL issues a Speak command to the Speaker, for the specified Word Bank with the specified phrase.\nUse this as the target of a Web Request when setting up your redeem, but do not use this as a Browser Soruce.",

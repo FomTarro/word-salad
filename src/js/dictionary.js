@@ -62,7 +62,16 @@ function parseDictionary(dir) {
 // });
 
 /**
- * @typedef {Object} Command
+ * @typedef {Object} SpeakRequest
+ * @property {string} phrase - Full sentence to say.
+ * @property {string} uuid - Request identifier.
+ * @property {string} bank - Bank identifier.
+ * @property {number} volume - Combined master/relative volume.
+ * @property {SpeakCommand[]} commands - List of sentence parts to speak.
+ */
+
+/**
+ * @typedef {Object} SpeakCommand
  * @property {string} word - Word.
  * @property {string} path - Path to the file to speak for play commands.
  * @property {number} delay - Delay to wait for delay commands.
@@ -72,7 +81,7 @@ function parseDictionary(dir) {
  * 
  * @param {string} phrase - The phrase to attempt to say
  * @param {Map<string, string[]>} dictionary - The list of available word variants, indexed by word.
- * @return {Command[]} commands - List of commands to process by the client.
+ * @return {SpeakCommand[]} commands - List of commands to process by the client.
  */
 function formSentence(phrase, delay, dictionary){
     const segmenter = new Intl.Segmenter('en', { granularity: 'word' });

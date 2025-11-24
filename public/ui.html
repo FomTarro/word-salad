@@ -22,12 +22,17 @@
             </div>
         </div>
         <div id="debugContent" class="tab flex column">
-            <div>
+            <div class="flex column">
+                <div class="italic">
+                    Newest log entries are at the top.
+                </div>
                 <div class="flex row">
                     <button class="wordButton noGrow" id="logButton">Open Logs Folder</button>
+                    <button class="hidden wordButton noGrow" id="logToggleButton">Reveal Logs</button>
                 </div>
             </div>
             <div class="flex scroll frame">
+                <div class="hidden blurCover"></div>
                 <ul id="logList">
 
                 </ul>
@@ -49,8 +54,9 @@
                             <label class="bold" for="port">Master Volume</label>
                         </div>
                         <div class="flex row">
-                            <input class="globalSetting slider" id="volumeMaster" type="range" min="0.0" max="1.0"
+                            <input class="globalSetting slider volume" id="volumeMaster" type="range" min="0.0" max="1.0"
                                 value="1.0" step="0.05">
+                            <div class="volumeIcon">🔊</div>
                             <div class='italic sliderValue'>100%</div>
                         </div>
                     </div>
@@ -153,13 +159,14 @@
                                 <span class="italic">milliseconds</span>
                             </div>
                         </div>
-                        <div>
+                        <div">
                             <div>
                                 <label class="bold" for="port">Relative Volume</label>
                             </div>
                             <div class="flex row">
-                                <input class="bankSetting slider" id="volumeRelative" type="range" min="0.0" max="1.0"
+                                <input class="bankSetting slider volume" id="volumeRelative" type="range" min="0.0" max="1.0"
                                     value="1.0" step="0.05">
+                                <div class="volumeIcon">🔊</div>
                                 <div class='italic sliderValue'>100%</div>
                             </div>
                         </div>

@@ -9,7 +9,7 @@ const { app, dialog, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker} = re
 const { version } = require('./package.json');
 const { menuTemplate } = require('./src/js/menu');
 const { isOlderThan, merge } = require('./src/js/utils');
-const { parseDictionary, formSentence, Command } = require('./src/js/dictionary');
+const { parseDictionary, formSentence, Command, SpeakRequest } = require('./src/js/dictionary');
 
 const SRC_DIR = path.join(__dirname, './src');
 const PUB_DIR = path.join(__dirname, './public');
@@ -33,7 +33,7 @@ const NEW_BANK = 'New Word Bank'
 
 /**
  * @callback OnSpeakCallback
- * @param {Command} command - The speak command passed to the callback.
+ * @param {SpeakRequest} command - The speak command passed to the callback.
  * @returns {void}
  */
 
@@ -402,7 +402,9 @@ const launchBackend = () => {
                         phrase: req.query.phrase,
                         uuid,
                         bank: bank.uuid,
-                        commands: commands 
+                        commands: commands,
+                        // TODO: this means that queued requests have their volume determined at queue time, which isn't what you want
+                        volume: (SETTINGS.volumeMaster * bank.volumeRelative)
                     });
                 }
                 res.status(200).send();
